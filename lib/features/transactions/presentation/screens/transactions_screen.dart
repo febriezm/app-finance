@@ -1,18 +1,29 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/app_providers.dart';
 import '../../../../app/router.dart';
-import '../../../../core/formatting/currency_formatter.dart';
 import '../../../../core/formatting/date_formatter.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_icons.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../shared/widgets/empty_state.dart';
+import '../../../../core/utils/app_haptics.dart';
+import '../../../../shared/widgets/shared_widgets.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/transaction_with_details.dart';
 import '../widgets/add_transaction_sheet.dart';
 
+/// Halaman Riwayat Transaksi — MyFinance Minimal (Quiet, Clean, Premium).
+///
+/// Fitur:
+/// - Tipografi hening dengan tabular figures pada nominal uang.
+/// - Pemilih bulan terintegrasi (MinimalMonthSelector).
+/// - Ringkasan pemasukan & pengeluaran bulanan flat.
+/// - Pencarian teks instan (merchant, catatan, kategori, dompet).
+/// - Filter jenis transaksi (Semua, Pengeluaran, Pemasukan, Transfer).
+/// - Pengelompokan mutasi berdasarkan tanggal (Grouping by Date).
+/// - Detail transaksi lengkap dengan pembatalan (Void).
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
 
@@ -21,21 +32,48 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   int _selectedFilterIndex = 0; // 0: Semua, 1: Pengeluaran, 2: Pemasukan, 3: Transfer
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _showAddTransaction(BuildContext context) {
+    AppHaptics.light();
     AddTransactionSheet.show(context);
+  }
+
+  String _getDateGroupLabel(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(date.year, date.month, date.day);
+    final diffDays = today.difference(target).inDays;
+
+    if (diffDays == 0) return 'Hari ini • ${AppDateFormatter.formatDate(date)}';
+    if (diffDays == 1) return 'Kemarin • ${AppDateFormatter.formatDate(date)}';
+    return AppDateFormatter.formatDate(date);
   }
 
   void _showDetailSheet(BuildContext context, TransactionWithDetails item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tx = item.transaction;
+    final isVoided = tx.status == TransactionStatus.voided;
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
-    final typeColor = tx.type == TransactionType.expense
-        ? (isDark ? AppColors.expenseDark : AppColors.expenseLight)
-        : tx.type == TransactionType.income
-            ? (isDark ? AppColors.incomeDark : AppColors.incomeLight)
-            : (isDark ? AppColors.transferDark : AppColors.transferLight);
+    AmountDisplayType amountType;
+    if (tx.type == TransactionType.income) {
+      amountType = AmountDisplayType.income;
+    } else if (tx.type == TransactionType.expense) {
+      amountType = AmountDisplayType.expense;
+    } else {
+      amountType = AmountDisplayType.neutral;
+    }
 
     showModalBottomSheet(
       context: context,
@@ -45,10 +83,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.88,
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          color: surfaceColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: borderColor, width: 0.8),
         ),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -60,16 +99,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 Center(
                   child: Container(
                     width: 36,
-                    height: 5,
+                    height: 4,
                     decoration: BoxDecoration(
                       color: isDark ? Colors.white24 : Colors.black12,
-                      borderRadius: BorderRadius.circular(2.5),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
 
-                // Title & Amount
+                // Judul & Nominal
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,70 +117,80 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(item.displayTitle, style: AppTypography.title3),
-                          const SizedBox(height: 2),
+                          Text(
+                            item.displayTitle,
+                            style: AppTypography.pageTitle.copyWith(fontSize: 20),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
                           Text(
                             DateFormatter.formatDateAndTime(tx.occurredAt),
-                            style: AppTypography.footnote.copyWith(
-                              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+                            style: AppTypography.caption.copyWith(
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                             ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      (tx.type == TransactionType.expense ? '- ' : tx.type == TransactionType.income ? '+ ' : '') +
-                          CurrencyFormatter.formatRupiah(tx.amount),
-                      style: AppTypography.headline.copyWith(
-                        color: tx.status == TransactionStatus.voided ? Colors.grey : typeColor,
-                        decoration: tx.status == TransactionStatus.voided ? TextDecoration.lineThrough : null,
-                      ),
+                    FinanceAmountText(
+                      amount: tx.amount,
+                      type: amountType,
+                      isVoided: isVoided,
+                      style: AppTypography.balanceMedium.copyWith(fontSize: 20),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                // Details card
+                // Detail Data Baris Kunci-Nilai Flat
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
+                    color: isDark ? const Color(0xFF191919) : const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor, width: 0.8),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildRow('Jenis', tx.type.displayName, isDark),
-                      const Divider(height: 16),
-                      _buildRow('Status', tx.status.displayName, isDark,
-                          valueColor: tx.status == TransactionStatus.confirmed ? Colors.green : Colors.red),
-                      const Divider(height: 16),
-                      _buildRow('Dompet Sumber', item.wallet?.name ?? '-', isDark),
+                      _buildDetailRow('Jenis Transaksi', tx.type.displayName, isDark),
+                      const SizedBox(height: 10),
+                      _buildDetailRow(
+                        'Status Transaksi',
+                        tx.status.displayName,
+                        isDark,
+                        valueColor: isVoided
+                            ? (isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight)
+                            : (isDark ? AppColors.incomeDark : AppColors.incomeLight),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildDetailRow('Dompet Sumber', item.wallet?.name ?? '-', isDark),
                       if (tx.type == TransactionType.transfer) ...[
-                        const Divider(height: 16),
-                        _buildRow(
+                        const SizedBox(height: 10),
+                        _buildDetailRow(
                           'Tujuan Transfer',
-                          item.destinationWallet?.name ?? (tx.merchant ?? 'Rekening / Pihak Luar'),
+                          item.destinationWallet?.name ?? (tx.merchant ?? 'Pihak Luar'),
                           isDark,
                         ),
                       ],
                       if (item.category != null) ...[
-                        const Divider(height: 16),
-                        _buildRow('Kategori', item.category!.name, isDark),
+                        const SizedBox(height: 10),
+                        _buildDetailRow('Kategori', item.category!.name, isDark),
                       ],
                       if (tx.merchant != null && tx.merchant!.isNotEmpty && tx.type != TransactionType.transfer) ...[
-                        const Divider(height: 16),
-                        _buildRow('Merchant/Penerima', tx.merchant!, isDark),
+                        const SizedBox(height: 10),
+                        _buildDetailRow('Merchant / Penerima', tx.merchant!, isDark),
                       ],
                       if (tx.description != null && tx.description!.isNotEmpty && tx.description != tx.merchant) ...[
-                        const Divider(height: 18),
-                        _buildBlockSection('Keterangan', tx.description!, isDark),
+                        const SizedBox(height: 12),
+                        _buildTextBlock('Keterangan', tx.description!, isDark, borderColor),
                       ],
                       if (tx.notes != null && tx.notes!.isNotEmpty) ...[
-                        const Divider(height: 18),
-                        _buildBlockSection('Rincian Item / Catatan', tx.notes!, isDark),
+                        const SizedBox(height: 12),
+                        _buildTextBlock('Rincian Item / Catatan', tx.notes!, isDark, borderColor),
                       ],
                     ],
                   ),
@@ -149,33 +198,54 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
                 const SizedBox(height: 20),
 
+                // Tombol Batalkan Transaksi (Void)
                 if (tx.status == TransactionStatus.confirmed)
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.cancel_outlined, color: Colors.red),
-                      label: const Text('Batalkan Transaksi (Void)', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                      icon: Icon(
+                        Icons.cancel_outlined,
+                        size: 18,
+                        color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                      ),
+                      label: Text(
+                        'Batalkan Transaksi (Void)',
+                        style: TextStyle(
+                          color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(
+                          color: (isDark ? AppColors.expenseDark : AppColors.expenseLight).withValues(alpha: 0.5),
+                          width: 0.8,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () async {
+                        unawaited(AppHaptics.selection());
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
                             title: const Text('Batalkan Transaksi?'),
                             content: const Text(
-                              'Transaksi ini akan ditandai "Voided" dan tidak akan lagi memengaruhi saldo dompet maupun laporan keuangan.',
+                              'Transaksi ini akan ditandai "Voided" dan tidak akan lagi memengaruhi saldo dompet maupun laporan anggaran.',
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.of(ctx).pop(false),
-                                child: const Text('Tidak'),
+                                child: const Text('Batal'),
                               ),
                               TextButton(
                                 onPressed: () => Navigator.of(ctx).pop(true),
-                                child: const Text('Ya, Batalkan', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  'Ya, Batalkan',
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -201,15 +271,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  Widget _buildRow(String label, String value, bool isDark, {Color? valueColor}) {
+  Widget _buildDetailRow(String label, String value, bool isDark, {Color? valueColor}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 120,
+          width: 125,
           child: Text(
             label,
-            style: AppTypography.footnote.copyWith(
+            style: AppTypography.caption.copyWith(
               color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
             ),
           ),
@@ -219,9 +289,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           child: Text(
             value,
             textAlign: TextAlign.end,
-            style: AppTypography.footnote.copyWith(
+            style: AppTypography.bodyMedium.copyWith(
+              color: valueColor ?? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
               fontWeight: FontWeight.w600,
-              color: valueColor,
             ),
           ),
         ),
@@ -229,35 +299,31 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  Widget _buildBlockSection(String label, String value, bool isDark) {
+  Widget _buildTextBlock(String label, String value, bool isDark, Color borderColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: AppTypography.caption1.copyWith(
-            fontWeight: FontWeight.w600,
+          style: AppTypography.caption.copyWith(
             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceCardDark : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isDark ? AppColors.borderDark : AppColors.borderLight,
-              width: 0.8,
-            ),
+            color: isDark ? AppColors.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: borderColor, width: 0.6),
           ),
           child: Text(
             value,
-            style: AppTypography.subhead.copyWith(
-              fontWeight: FontWeight.w500,
-              height: 1.4,
+            style: AppTypography.body.copyWith(
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              height: 1.35,
             ),
           ),
         ),
@@ -269,209 +335,398 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final transactionsAsync = ref.watch(recentTransactionsStreamProvider);
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final bgScaffold = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
 
     return Scaffold(
+      backgroundColor: bgScaffold,
       appBar: AppBar(
-        title: const Text('Riwayat Transaksi'),
+        title: const Text('Transaksi'),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: bgScaffold,
         actions: [
           IconButton(
-            icon: const Icon(Icons.document_scanner_outlined),
+            icon: const Icon(Icons.document_scanner_outlined, size: 21),
             tooltip: 'Scan Struk (OCR)',
-            onPressed: () => context.push(AppRouter.receiptScanner),
+            onPressed: () {
+              AppHaptics.selection();
+              context.push(AppRouter.receiptScanner);
+            },
           ),
           IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded),
+            icon: const Icon(Icons.add_rounded, size: 24),
             tooltip: 'Catat Transaksi',
             onPressed: () => _showAddTransaction(context),
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
         children: [
-          // Filter Tabs Segment
+          // 1. Month Selector
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  _buildFilterTab(0, 'Semua', isDark),
-                  _buildFilterTab(1, 'Pengeluaran', isDark),
-                  _buildFilterTab(2, 'Pemasukan', isDark),
-                  _buildFilterTab(3, 'Transfer', isDark),
-                ],
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: MinimalMonthSelector(
+              currentMonth: _selectedMonth,
+              onMonthChanged: (newMonth) {
+                setState(() => _selectedMonth = newMonth);
+              },
             ),
           ),
 
-          // Transactions List
+          // 2. Transaksi Data Provider & Filter/Summary
           Expanded(
             child: transactionsAsync.when(
-              data: (transactions) {
-                // Apply filter
-                final filtered = transactions.where((item) {
-                  if (_selectedFilterIndex == 1) return item.transaction.type == TransactionType.expense;
-                  if (_selectedFilterIndex == 2) return item.transaction.type == TransactionType.income;
-                  if (_selectedFilterIndex == 3) return item.transaction.type == TransactionType.transfer;
+              data: (allTransactions) {
+                final selectedMonthKey = AppDateFormatter.toMonthKey(_selectedMonth);
+
+                // Hitung total pemasukan & pengeluaran terkonfirmasi di bulan yang dipilih
+                final monthConfirmedTransactions = allTransactions.where((item) {
+                  final localDt = AppDateFormatter.parseUtcToLocal(item.transaction.occurredAt);
+                  return AppDateFormatter.toMonthKey(localDt) == selectedMonthKey &&
+                      item.transaction.status == TransactionStatus.confirmed;
+                }).toList();
+
+                final monthIncome = monthConfirmedTransactions
+                    .where((t) => t.transaction.type == TransactionType.income)
+                    .fold<int>(0, (sum, t) => sum + t.transaction.amount);
+
+                final monthExpense = monthConfirmedTransactions
+                    .where((t) => t.transaction.type == TransactionType.expense)
+                    .fold<int>(0, (sum, t) => sum + t.transaction.amount);
+
+                // Filter berdasarkan bulan, filter kategori jenis, dan query pencarian
+                final filtered = allTransactions.where((item) {
+                  final tx = item.transaction;
+                  final localDt = AppDateFormatter.parseUtcToLocal(tx.occurredAt);
+
+                  // Filter bulan
+                  if (AppDateFormatter.toMonthKey(localDt) != selectedMonthKey) {
+                    return false;
+                  }
+
+                  // Filter tipe
+                  if (_selectedFilterIndex == 1 && tx.type != TransactionType.expense) return false;
+                  if (_selectedFilterIndex == 2 && tx.type != TransactionType.income) return false;
+                  if (_selectedFilterIndex == 3 && tx.type != TransactionType.transfer) return false;
+
+                  // Filter pencarian
+                  if (_searchQuery.isNotEmpty) {
+                    final query = _searchQuery.toLowerCase();
+                    final title = item.displayTitle.toLowerCase();
+                    final merchant = tx.merchant?.toLowerCase() ?? '';
+                    final desc = tx.description?.toLowerCase() ?? '';
+                    final notes = tx.notes?.toLowerCase() ?? '';
+                    final category = item.category?.name.toLowerCase() ?? '';
+                    final wallet = item.wallet?.name.toLowerCase() ?? '';
+                    final dest = item.destinationWallet?.name.toLowerCase() ?? '';
+
+                    final match = title.contains(query) ||
+                        merchant.contains(query) ||
+                        desc.contains(query) ||
+                        notes.contains(query) ||
+                        category.contains(query) ||
+                        wallet.contains(query) ||
+                        dest.contains(query);
+
+                    if (!match) return false;
+                  }
+
                   return true;
                 }).toList();
 
-                if (filtered.isEmpty) {
-                  return EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'Belum Ada Transaksi',
-                    message: _selectedFilterIndex == 0
-                        ? 'Catat transaksi pertama Anda untuk mulai memantau arus kas.'
-                        : 'Tidak ada transaksi untuk filter ini.',
-                    actionLabel: 'Catat Transaksi',
-                    onActionPressed: () => _showAddTransaction(context),
-                  );
+                // Urutkan transaksi terbaru ke terlama
+                filtered.sort((a, b) => b.transaction.occurredAt.compareTo(a.transaction.occurredAt));
+
+                // Kelompokkan transaksi berdasarkan tanggal (Grouping by Date)
+                final groupedTransactions = <String, List<TransactionWithDetails>>{};
+                for (final item in filtered) {
+                  final localDt = AppDateFormatter.parseUtcToLocal(item.transaction.occurredAt);
+                  final dateKey = '${localDt.year}-${localDt.month.toString().padLeft(2, '0')}-${localDt.day.toString().padLeft(2, '0')}';
+                  groupedTransactions.putIfAbsent(dateKey, () => []).add(item);
                 }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final item = filtered[index];
-                    final tx = item.transaction;
-                    final isVoided = tx.status == TransactionStatus.voided;
-
-                    Color itemColor;
-                    IconData itemIcon;
-
-                    if (tx.type == TransactionType.transfer) {
-                      itemColor = isDark ? AppColors.transferDark : AppColors.transferLight;
-                      itemIcon = Icons.swap_horiz_rounded;
-                    } else if (tx.type == TransactionType.income) {
-                      itemColor = isDark ? AppColors.incomeDark : AppColors.incomeLight;
-                      itemIcon = AppIcons.getIcon(item.category?.iconKey ?? 'briefcase');
-                    } else {
-                      itemColor = isDark ? AppColors.expenseDark : AppColors.expenseLight;
-                      itemIcon = AppIcons.getIcon(item.category?.iconKey ?? 'utensils');
-                    }
-
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () => _showDetailSheet(context, item),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.surfaceCardDark : AppColors.surfaceLight,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                            width: 0.8,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            // Icon Avatar
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: isVoided ? Colors.grey.withValues(alpha: 0.2) : itemColor.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                itemIcon,
-                                color: isVoided ? Colors.grey : itemColor,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-
-                            // Title & Subtitle
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          item.displayTitle,
-                                          style: AppTypography.body.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                            decoration: isVoided ? TextDecoration.lineThrough : null,
-                                            color: isVoided
-                                                ? (isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight)
-                                                : null,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  padding: const EdgeInsets.only(bottom: 24),
+                  children: [
+                    // 2a. Ringkasan Pemasukan & Pengeluaran Bulan Berjalan
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: surfaceColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor, width: 0.8),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
                                       ),
-                                      if (isVoided)
-                                        Container(
-                                          margin: const EdgeInsets.only(left: 6),
-                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                          decoration: BoxDecoration(
-                                            color: Colors.red.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: const Text(
-                                            'VOID',
-                                            style: TextStyle(
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.red,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    item.displaySubtitle.isNotEmpty
-                                        ? '${item.displaySubtitle} • ${DateFormatter.formatDateAndTime(tx.occurredAt)}'
-                                        : DateFormatter.formatDateAndTime(tx.occurredAt),
-                                    style: AppTypography.caption1.copyWith(
-                                      color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Pemasukan',
+                                      style: AppTypography.caption.copyWith(
+                                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                FinanceAmountText(
+                                  amount: monthIncome,
+                                  type: AmountDisplayType.neutral,
+                                  color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+                                  style: AppTypography.bodyBold.copyWith(fontSize: 14),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 10),
+                          ),
+                          Container(
+                            height: 28,
+                            width: 0.8,
+                            color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Pengeluaran',
+                                      style: AppTypography.caption.copyWith(
+                                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                FinanceAmountText(
+                                  amount: monthExpense,
+                                  type: AmountDisplayType.neutral,
+                                  color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                                  style: AppTypography.bodyBold.copyWith(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
-                            // Amount
-                            Text(
-                              (tx.type == TransactionType.expense ? '- ' : tx.type == TransactionType.income ? '+ ' : '') +
-                                  CurrencyFormatter.formatRupiah(tx.amount),
-                              style: AppTypography.headline.copyWith(
-                                fontSize: 15,
-                                color: isVoided
-                                    ? Colors.grey
-                                    : (tx.type == TransactionType.expense
-                                        ? (isDark ? AppColors.expenseDark : AppColors.expenseLight)
-                                        : tx.type == TransactionType.income
-                                            ? (isDark ? AppColors.incomeDark : AppColors.incomeLight)
-                                            : (isDark ? AppColors.transferDark : AppColors.transferLight)),
-                                decoration: isVoided ? TextDecoration.lineThrough : null,
-                              ),
-                            ),
-                          ],
+                    // 2b. Kotak Pencarian Transaksi
+                    Container(
+                      height: 42,
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: surfaceColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: borderColor, width: 0.8),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+                        style: AppTypography.body.copyWith(
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Cari transaksi, merchant, catatan...',
+                          hintStyle: AppTypography.caption.copyWith(
+                            color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            size: 18,
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          ),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear_rounded, size: 16),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                          isDense: true,
                         ),
                       ),
-                    );
-                  },
+                    ),
+
+                    // 2c. Filter Jenis Transaksi Segment
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: Row(
+                        children: [
+                          _buildFilterChip(0, 'Semua', isDark, surfaceColor, borderColor),
+                          const SizedBox(width: 8),
+                          _buildFilterChip(1, 'Pengeluaran', isDark, surfaceColor, borderColor),
+                          const SizedBox(width: 8),
+                          _buildFilterChip(2, 'Pemasukan', isDark, surfaceColor, borderColor),
+                          const SizedBox(width: 8),
+                          _buildFilterChip(3, 'Transfer', isDark, surfaceColor, borderColor),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // 2d. Daftar Transaksi Terkelompok atau Empty State
+                    if (filtered.isEmpty)
+                      Container(
+                        margin: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: surfaceColor,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: borderColor, width: 0.8),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.receipt_long_outlined,
+                              size: 36,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _searchQuery.isNotEmpty
+                                  ? 'Tidak Ada Hasil'
+                                  : 'Belum Ada Transaksi',
+                              style: AppTypography.sectionTitle.copyWith(
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _searchQuery.isNotEmpty
+                                  ? 'Tidak ditemukan transaksi yang cocok dengan "$_searchQuery".'
+                                  : _selectedFilterIndex == 0
+                                      ? 'Belum ada transaksi tercatat pada ${AppDateFormatter.formatMonthYear(_selectedMonth)}.'
+                                      : 'Tidak ada transaksi untuk filter ini pada ${AppDateFormatter.formatMonthYear(_selectedMonth)}.',
+                              textAlign: TextAlign.center,
+                              style: AppTypography.caption.copyWith(
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                            ),
+                            if (_searchQuery.isEmpty) ...[
+                              const SizedBox(height: 14),
+                              OutlinedButton(
+                                onPressed: () => _showAddTransaction(context),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: borderColor, width: 0.8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                                  ),
+                                ),
+                                child: const Text('Catat Transaksi'),
+                              ),
+                            ],
+                          ],
+                        ),
+                      )
+                    else
+                      ...groupedTransactions.entries.map((entry) {
+                        final itemsInDate = entry.value;
+                        final firstTxDt = AppDateFormatter.parseUtcToLocal(itemsInDate.first.transaction.occurredAt);
+                        final dateHeaderLabel = _getDateGroupLabel(firstTxDt);
+
+                        return Container(
+                          margin: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+                          decoration: BoxDecoration(
+                            color: surfaceColor,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: borderColor, width: 0.8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Date Group Header
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      dateHeaderLabel,
+                                      style: AppTypography.caption.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${itemsInDate.length} transaksi',
+                                      style: AppTypography.caption2.copyWith(
+                                        color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Divider(
+                                height: 1,
+                                thickness: 0.6,
+                                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+                              ),
+
+                              // Tiles
+                              ...itemsInDate.asMap().entries.map((itemEntry) {
+                                final index = itemEntry.key;
+                                final item = itemEntry.value;
+                                return TransactionListTile(
+                                  item: item,
+                                  showDivider: index < itemsInDate.length - 1,
+                                  onTap: () {
+                                    AppHaptics.selection();
+                                    _showDetailSheet(context, item);
+                                  },
+                                );
+                              }),
+                            ],
+                          ),
+                        );
+                      }),
+                  ],
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => const Center(
+              error: (e, _) => Center(
                 child: Padding(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
                   child: Text(
                     'Belum dapat memuat daftar transaksi. Silakan muat ulang.',
-                    style: AppTypography.subhead,
+                    style: AppTypography.body.copyWith(
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
                   ),
                 ),
               ),
@@ -482,39 +737,40 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  Widget _buildFilterTab(int index, String title, bool isDark) {
+  Widget _buildFilterChip(
+    int index,
+    String title,
+    bool isDark,
+    Color surfaceColor,
+    Color borderColor,
+  ) {
     final isSelected = _selectedFilterIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedFilterIndex = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? (isDark ? AppColors.surfaceCardDark : Colors.white)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    )
-                  ]
-                : null,
+    final activeBg = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final activeFg = isDark ? AppColors.backgroundDark : Colors.white;
+    final inactiveFg = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
+    return InkWell(
+      onTap: () {
+        AppHaptics.selection();
+        setState(() => _selectedFilterIndex = index);
+      },
+      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? activeBg : surfaceColor,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+          border: Border.all(
+            color: isSelected ? activeBg : borderColor,
+            width: 0.8,
           ),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              color: isSelected
-                  ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
-                  : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-            ),
+        ),
+        child: Text(
+          title,
+          style: AppTypography.caption.copyWith(
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? activeFg : inactiveFg,
           ),
         ),
       ),

@@ -53,11 +53,11 @@ class FinanceAmountText extends StatelessWidget {
       switch (type) {
         case AmountDisplayType.income:
           textColor = isDark ? AppColors.incomeDark : AppColors.incomeLight;
-          if (showPlusSign) sign = '+';
+          if (showPlusSign) sign = '+ ';
           break;
         case AmountDisplayType.expense:
           textColor = isDark ? AppColors.expenseDark : AppColors.expenseLight;
-          sign = '-';
+          sign = '- ';
           break;
         case AmountDisplayType.neutral:
           textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
@@ -65,10 +65,10 @@ class FinanceAmountText extends StatelessWidget {
         case AmountDisplayType.auto:
           if (amount > 0) {
             textColor = isDark ? AppColors.incomeDark : AppColors.incomeLight;
-            if (showPlusSign) sign = '+';
+            if (showPlusSign) sign = '+ ';
           } else if (amount < 0) {
             textColor = isDark ? AppColors.expenseDark : AppColors.expenseLight;
-            sign = '-';
+            sign = '- ';
           } else {
             textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
           }
