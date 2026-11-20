@@ -1,30 +1,42 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/app_providers.dart';
 import '../../../../core/formatting/currency_formatter.dart';
 import '../../../../core/formatting/date_formatter.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../shared/widgets/app_button.dart';
+import '../../../../core/utils/app_haptics.dart';
+import '../../../../shared/widgets/shared_widgets.dart';
 import '../../../categories/domain/entities/category.dart';
 import '../../domain/entities/transaction.dart';
+import '../../domain/entities/transaction_with_details.dart';
 
+/// Modal Sheet Catat & Edit Transaksi — MyFinance Minimal (Quiet, Clean, Premium).
+///
+/// Karakter Desain:
+/// - Type selector hening (Pengeluaran, Pemasukan, Transfer).
+/// - Nominal uang besar dan terfokus (38px, tabular figures, hint 'Rp 0').
+/// - Category selector minimalis dengan icon sederhana.
+/// - Form detail (Dompet, Waktu, Merchant, Catatan) flat tanpa border tebal.
+/// - Tombol simpan flat bebas gradien dan ramah sentuhan.
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final TransactionType initialType;
   final String? initialWalletId;
+  final TransactionWithDetails? initialTransaction;
 
   const AddTransactionSheet({
     super.key,
     this.initialType = TransactionType.expense,
     this.initialWalletId,
+    this.initialTransaction,
   });
 
   static Future<bool?> show(
     BuildContext context, {
     TransactionType initialType = TransactionType.expense,
     String? initialWalletId,
+    TransactionWithDetails? initialTransaction,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -33,6 +45,7 @@ class AddTransactionSheet extends ConsumerStatefulWidget {
       builder: (context) => AddTransactionSheet(
         initialType: initialType,
         initialWalletId: initialWalletId,
+        initialTransaction: initialTransaction,
       ),
     );
   }
@@ -86,8 +99,25 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   @override
   void initState() {
     super.initState();
-    _type = widget.initialType;
-    _selectedWalletId = widget.initialWalletId;
+    if (widget.initialTransaction != null) {
+      final tx = widget.initialTransaction!.transaction;
+      _type = tx.type;
+      _amount = tx.amount;
+      _amountController.text = CurrencyFormatter.formatRupiah(tx.amount);
+      _selectedWalletId = tx.walletId;
+      _selectedDestWalletId = tx.destinationWalletId;
+      _selectedCategoryId = tx.categoryId;
+      _occurredAt = AppDateFormatter.parseUtcToLocal(tx.occurredAt);
+      _merchantController.text = tx.merchant ?? '';
+      _notesController.text = tx.notes ?? '';
+      if (tx.type == TransactionType.transfer && tx.destinationWalletId == null && tx.merchant != null) {
+        _isExternalTransfer = true;
+        _recipientNameController.text = tx.merchant!;
+      }
+    } else {
+      _type = widget.initialType;
+      _selectedWalletId = widget.initialWalletId;
+    }
   }
 
   @override
@@ -115,6 +145,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   }
 
   Future<void> _selectDate() async {
+    unawaited(AppHaptics.selection());
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: _occurredAt,
@@ -225,6 +256,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       notes = _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null;
     }
 
+    // Jika mengedit transaksi yang sudah ada, batalkan versi lama terlebih dahulu
+    if (widget.initialTransaction != null) {
+      await ref.read(transactionsControllerProvider.notifier).voidTransaction(widget.initialTransaction!.transaction.id);
+    }
+
     final success = await ref.read(transactionsControllerProvider.notifier).createTransaction(
           type: _type,
           amount: _amount,
@@ -241,10 +277,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
     if (mounted) {
       if (success) {
-        await HapticFeedback.lightImpact();
-        if (mounted) {
-          Navigator.of(context).pop(true);
-        }
+        unawaited(AppHaptics.light());
+        Navigator.of(context).pop(true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Gagal menyimpan transaksi.')),
@@ -277,85 +311,91 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       }
     });
 
-    final typeColor = _type == TransactionType.expense
-        ? (isDark ? AppColors.expenseDark : AppColors.expenseLight)
-        : _type == TransactionType.income
-            ? (isDark ? AppColors.incomeDark : AppColors.incomeLight)
-            : (isDark ? AppColors.transferDark : AppColors.transferLight);
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final cardBg = isDark ? const Color(0xFF191919) : const Color(0xFFF9FAFB);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.90,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        color: surfaceColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border.all(color: borderColor, width: 0.8),
       ),
       child: Column(
         children: [
           // iOS Drag Handle
           const SizedBox(height: 10),
-          Container(
-            width: 36,
-            height: 5,
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white24 : Colors.black12,
-              borderRadius: BorderRadius.circular(2.5),
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.black12,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
-          // Modal Navigation Header
+          // Modal Navigation Header (Batal - Judul - Simpan)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    AppHaptics.selection();
+                    Navigator.of(context).pop();
+                  },
                   child: Text(
                     'Batal',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                     ),
                   ),
                 ),
                 Text(
-                  'Catat Transaksi',
-                  style: AppTypography.headline.copyWith(fontSize: 17, fontWeight: FontWeight.w600),
+                  widget.initialTransaction != null ? 'Edit Transaksi' : 'Catat Transaksi',
+                  style: AppTypography.pageTitle.copyWith(fontSize: 17),
                 ),
                 TextButton(
                   onPressed: _isLoading ? null : _save,
                   child: _isLoading
                       ? const SizedBox(
-                          width: 18,
-                          height: 18,
+                          width: 16,
+                          height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Text(
                           'Simpan',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: typeColor,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                           ),
                         ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, thickness: 0.6, color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
 
-          // Scrollable Content
+          // Scrollable Form Content
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               children: [
-                // 1. Transaction Type Segmented Control
+                // 1. Transaction Type Selector (Segmented Flat)
                 Container(
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
+                    color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderColor, width: 0.6),
                   ),
                   child: Row(
                     children: [
@@ -368,14 +408,15 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
                 const SizedBox(height: 20),
 
-                // 2. Large Amount Input Display
+                // 2. Large Amount Input Display (Fokus Utama)
                 Center(
                   child: Column(
                     children: [
                       Text(
                         'Nominal',
-                        style: AppTypography.caption1.copyWith(
-                          color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+                        style: AppTypography.caption.copyWith(
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          letterSpacing: 0.2,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -383,23 +424,25 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                         controller: _amountController,
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: typeColor,
-                          letterSpacing: -0.5,
+                        style: AppTypography.balanceLarge.copyWith(
+                          fontSize: 38,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.8,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                         ),
                         decoration: InputDecoration(
                           hintText: 'Rp 0',
-                          hintStyle: TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.bold,
+                          hintStyle: AppTypography.balanceLarge.copyWith(
+                            fontSize: 38,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.8,
                             color: (isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight)
-                                .withValues(alpha: 0.5),
+                                .withValues(alpha: 0.35),
                           ),
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
                         ),
                         onChanged: _onAmountChanged,
                       ),
@@ -407,20 +450,64 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 22),
 
-                // 3. Wallets Selection (Source & Destination for Transfer)
+                // 3. Category Selector (Only for Income & Expense)
+                if (_type != TransactionType.transfer) ...[
+                  Text(
+                    'Kategori',
+                    style: AppTypography.caption.copyWith(
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  categoriesAsync.when(
+                    data: (categories) {
+                      if (categories.isEmpty) {
+                        return Text(
+                          'Tidak ada kategori tersedia.',
+                          style: AppTypography.caption.copyWith(
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          ),
+                        );
+                      }
+                      return CategorySelector(
+                        categories: categories,
+                        selectedCategoryId: _selectedCategoryId,
+                        isHorizontal: true,
+                        onSelected: (cat) {
+                          setState(() => _selectedCategoryId = cat.id);
+                        },
+                      );
+                    },
+                    loading: () => const SizedBox(height: 38, child: Center(child: CircularProgressIndicator())),
+                    error: (_, __) => const Text('Gagal memuat kategori', style: TextStyle(color: Colors.red, fontSize: 13)),
+                  ),
+                  const SizedBox(height: 18),
+                ],
+
+                // 4. Dompet / Wallets Selection
+                Text(
+                  _type == TransactionType.transfer ? 'Pengaturan Transfer' : 'Dompet Sumber',
+                  style: AppTypography.caption.copyWith(
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 walletsAsync.when(
                   data: (wallets) {
                     if (wallets.isEmpty) {
                       return Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
+                          color: cardBg,
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: borderColor, width: 0.8),
                         ),
                         child: const Text(
-                          'Belum ada dompet. Tambahkan dompet terlebih dahulu pada menu Dompet.',
+                          'Belum ada dompet. Tambahkan dompet terlebih dahulu.',
                           textAlign: TextAlign.center,
                         ),
                       );
@@ -430,22 +517,24 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                       return Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                            width: 0.8,
-                          ),
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: borderColor, width: 0.8),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 1. Dari Dompet Asal
+                            // 4a. Dari Dompet Asal
                             Row(
                               children: [
-                                const Icon(Icons.arrow_upward_rounded, size: 20, color: Colors.redAccent),
+                                Icon(Icons.arrow_upward_rounded, size: 18, color: isDark ? AppColors.expenseDark : AppColors.expenseLight),
                                 const SizedBox(width: 8),
-                                const Text('Dari', style: AppTypography.callout),
+                                Text(
+                                  'Dari',
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Align(
@@ -459,7 +548,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                                           value: w.wallet.id,
                                           child: Text(
                                             '${w.wallet.name} (${CurrencyFormatter.formatRupiah(w.currentBalance)})',
-                                            style: AppTypography.subhead,
+                                            style: AppTypography.bodyMedium,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -480,13 +569,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                               ],
                             ),
 
-                            const Divider(height: 20),
+                            Divider(height: 20, thickness: 0.6, color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
 
-                            // 2. Tujuan Transfer: Segmented Toggle
+                            // 4b. Tujuan Transfer: Segmented Toggle
                             Text(
-                              'Tujuan Transfer (Ke)',
-                              style: AppTypography.caption1.copyWith(
-                                fontWeight: FontWeight.w600,
+                              'Tujuan Transfer',
+                              style: AppTypography.caption.copyWith(
                                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                               ),
                             ),
@@ -495,36 +583,25 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                             Container(
                               padding: const EdgeInsets.all(3),
                               decoration: BoxDecoration(
-                                color: isDark ? AppColors.surfaceDark : AppColors.surfaceCardLight,
+                                color: isDark ? AppColors.surfaceDark : Colors.white,
                                 borderRadius: BorderRadius.circular(9),
-                                border: Border.all(
-                                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                                  width: 0.8,
-                                ),
+                                border: Border.all(color: borderColor, width: 0.8),
                               ),
                               child: Row(
                                 children: [
                                   Expanded(
                                     child: GestureDetector(
                                       onTap: () {
+                                        AppHaptics.selection();
                                         setState(() => _isExternalTransfer = false);
                                       },
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(vertical: 7),
                                         decoration: BoxDecoration(
                                           color: !_isExternalTransfer
-                                              ? (isDark ? AppColors.surfaceElevatedDark : Colors.white)
+                                              ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
                                               : Colors.transparent,
                                           borderRadius: BorderRadius.circular(7),
-                                          boxShadow: !_isExternalTransfer
-                                              ? [
-                                                  BoxShadow(
-                                                    color: Colors.black.withOpacity(0.06),
-                                                    blurRadius: 4,
-                                                    offset: const Offset(0, 1),
-                                                  )
-                                                ]
-                                              : null,
                                         ),
                                         alignment: Alignment.center,
                                         child: Text(
@@ -533,8 +610,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                                             fontSize: 12,
                                             fontWeight: !_isExternalTransfer ? FontWeight.w600 : FontWeight.normal,
                                             color: !_isExternalTransfer
-                                                ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
-                                                : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight),
+                                                ? (isDark ? AppColors.backgroundDark : Colors.white)
+                                                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                                           ),
                                         ),
                                       ),
@@ -543,34 +620,26 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                                   Expanded(
                                     child: GestureDetector(
                                       onTap: () {
+                                        AppHaptics.selection();
                                         setState(() => _isExternalTransfer = true);
                                       },
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(vertical: 7),
                                         decoration: BoxDecoration(
                                           color: _isExternalTransfer
-                                              ? (isDark ? AppColors.surfaceElevatedDark : Colors.white)
+                                              ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
                                               : Colors.transparent,
                                           borderRadius: BorderRadius.circular(7),
-                                          boxShadow: _isExternalTransfer
-                                              ? [
-                                                  BoxShadow(
-                                                    color: Colors.black.withOpacity(0.06),
-                                                    blurRadius: 4,
-                                                    offset: const Offset(0, 1),
-                                                  )
-                                                ]
-                                              : null,
                                         ),
                                         alignment: Alignment.center,
                                         child: Text(
-                                          'Rekening / Orang Lain',
+                                          'Bank / Orang Lain',
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: _isExternalTransfer ? FontWeight.w600 : FontWeight.normal,
                                             color: _isExternalTransfer
-                                                ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
-                                                : (isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight),
+                                                ? (isDark ? AppColors.backgroundDark : Colors.white)
+                                                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
                                           ),
                                         ),
                                       ),
@@ -582,37 +651,24 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
                             const SizedBox(height: 12),
 
-                            // 3. Konten Pilihan Berdasarkan Mode Tujuan
+                            // 4c. Konten Tujuan
                             if (!_isExternalTransfer) ...[
-                              // Pilihan Dompet Internal
                               if (wallets.length <= 1)
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.amber.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.info_outline_rounded, size: 16, color: Colors.amber),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          'Hanya ada 1 dompet aktif. Pilih tab "Rekening / Orang Lain" untuk transfer ke bank/e-wallet luar.',
-                                          style: AppTypography.caption2.copyWith(
-                                            color: isDark ? Colors.amber[200] : Colors.amber[900],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                Text(
+                                  'Hanya ada 1 dompet. Pilih "Bank / Orang Lain" untuk transfer ke luar.',
+                                  style: AppTypography.caption.copyWith(color: Colors.amber),
                                 )
                               else
                                 Row(
                                   children: [
-                                    const Icon(Icons.arrow_downward_rounded, size: 20, color: Colors.green),
+                                    Icon(Icons.arrow_downward_rounded, size: 18, color: isDark ? AppColors.incomeDark : AppColors.incomeLight),
                                     const SizedBox(width: 8),
-                                    const Text('Ke Dompet', style: AppTypography.callout),
+                                    Text(
+                                      'Ke',
+                                      style: AppTypography.bodyMedium.copyWith(
+                                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                      ),
+                                    ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Align(
@@ -628,7 +684,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                                               value: w.wallet.id,
                                               child: Text(
                                                 '${w.wallet.name} (${CurrencyFormatter.formatRupiah(w.currentBalance)})',
-                                                style: AppTypography.subhead,
+                                                style: AppTypography.bodyMedium,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
@@ -643,76 +699,34 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                                   ],
                                 ),
                             ] else ...[
-                              // Pilihan Bank / E-Wallet & Orang Lain (Eksternal)
-                              // Dropdown Bank / E-Wallet
+                              // Dropdown Bank / E-Wallet Luar
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                                  color: surfaceColor,
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                                    width: 0.8,
-                                  ),
+                                  border: Border.all(color: borderColor, width: 0.8),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      _selectedInstitution.startsWith('Bank')
-                                          ? Icons.account_balance_rounded
-                                          : Icons.account_balance_wallet_rounded,
-                                      size: 18,
-                                      color: isDark ? AppColors.transferDark : AppColors.transferLight,
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _selectedInstitution,
+                                    isExpanded: true,
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                                     ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: DropdownButtonHideUnderline(
-                                        child: DropdownButton<String>(
-                                          value: _selectedInstitution,
-                                          isExpanded: true,
-                                          style: AppTypography.subhead.copyWith(
-                                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                                          ),
-                                          dropdownColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                                          items: transferInstitutions.map((inst) {
-                                            final isBank = inst.startsWith('Bank');
-                                            final isOther = inst.contains('Lainnya');
-                                            return DropdownMenuItem<String>(
-                                              value: inst,
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    isOther
-                                                        ? Icons.edit_note_rounded
-                                                        : (isBank
-                                                            ? Icons.account_balance_outlined
-                                                            : Icons.account_balance_wallet_outlined),
-                                                    size: 16,
-                                                    color: isDark
-                                                        ? AppColors.textTertiaryDark
-                                                        : AppColors.textTertiaryLight,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Text(
-                                                      inst,
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
-                                          onChanged: (val) {
-                                            if (val != null) {
-                                              setState(() => _selectedInstitution = val);
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                    dropdownColor: surfaceColor,
+                                    items: transferInstitutions.map((inst) {
+                                      return DropdownMenuItem<String>(
+                                        value: inst,
+                                        child: Text(inst, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      );
+                                    }).toList(),
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        setState(() => _selectedInstitution = val);
+                                      }
+                                    },
+                                  ),
                                 ),
                               ),
 
@@ -721,19 +735,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                                 TextField(
                                   controller: _customInstitutionController,
                                   decoration: InputDecoration(
-                                    hintText: 'Tulis Nama Bank atau E-Wallet...',
-                                    hintStyle: AppTypography.caption1.copyWith(
-                                      color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+                                    hintText: 'Tulis nama bank atau e-wallet...',
+                                    hintStyle: AppTypography.caption.copyWith(
+                                      color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
                                     ),
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                     filled: true,
-                                    fillColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                                    fillColor: surfaceColor,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(
-                                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                                        width: 0.8,
-                                      ),
+                                      borderSide: BorderSide(color: borderColor, width: 0.8),
                                     ),
                                   ),
                                 ),
@@ -741,49 +752,42 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
                               const SizedBox(height: 10),
 
-                              // Nama Penerima / Orang yang Ditransfer
+                              // Nama Penerima
                               TextField(
                                 controller: _recipientNameController,
                                 decoration: InputDecoration(
-                                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
-                                  hintText: 'Nama Penerima (misal: Budi, Ibu, Bayar Kos)',
-                                  hintStyle: AppTypography.subhead.copyWith(
-                                    color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+                                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 18),
+                                  hintText: 'Nama penerima transfer',
+                                  hintStyle: AppTypography.caption.copyWith(
+                                    color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
                                   ),
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                   filled: true,
-                                  fillColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                                  fillColor: surfaceColor,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                                      width: 0.8,
-                                    ),
+                                    borderSide: BorderSide(color: borderColor, width: 0.8),
                                   ),
                                 ),
                               ),
 
                               const SizedBox(height: 10),
 
-                              // Nomor Rekening / No. HP Penerima (Opsional)
+                              // Nomor Rekening
                               TextField(
                                 controller: _recipientAccountController,
-                                keyboardType: TextInputType.text,
                                 decoration: InputDecoration(
-                                  prefixIcon: const Icon(Icons.tag_rounded, size: 20),
-                                  hintText: 'No. Rekening / No. HP Tujuan (opsional)',
-                                  hintStyle: AppTypography.subhead.copyWith(
-                                    color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+                                  prefixIcon: const Icon(Icons.tag_rounded, size: 18),
+                                  hintText: 'Nomor rekening / No. HP (opsional)',
+                                  hintStyle: AppTypography.caption.copyWith(
+                                    color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
                                   ),
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                   filled: true,
-                                  fillColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                                  fillColor: surfaceColor,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                                      width: 0.8,
-                                    ),
+                                    borderSide: BorderSide(color: borderColor, width: 0.8),
                                   ),
                                 ),
                               ),
@@ -793,18 +797,28 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                       );
                     }
 
-                    // Single Wallet Picker for Income/Expense
+                    // Single Wallet Picker untuk Income & Expense
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
+                        color: cardBg,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor, width: 0.8),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.account_balance_wallet_rounded, size: 20),
-                          const SizedBox(width: 12),
-                          const Text('Dompet', style: AppTypography.callout),
+                          Icon(
+                            Icons.account_balance_wallet_outlined,
+                            size: 19,
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Dompet',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Align(
@@ -818,7 +832,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                                     value: w.wallet.id,
                                     child: Text(
                                       '${w.wallet.name} (${CurrencyFormatter.formatRupiah(w.currentBalance)})',
-                                      style: AppTypography.subhead,
+                                      style: AppTypography.bodyMedium,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -835,182 +849,127 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                     );
                   },
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => const Text('Gagal memuat dompet', style: TextStyle(color: Colors.red, fontSize: 13)),
+                  error: (_, __) => const Text('Gagal memuat dompet', style: TextStyle(color: Colors.red, fontSize: 13)),
                 ),
 
                 const SizedBox(height: 16),
 
-                // 4. Category Selector (Only for Income and Expense)
-                if (_type != TransactionType.transfer) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Kategori',
-                        style: AppTypography.footnote.copyWith(
-                          color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                          fontWeight: FontWeight.w600,
+                // 5. Merchant / Toko / Sumber (hanya jika bukan transfer eksternal)
+                if (_type != TransactionType.transfer || !_isExternalTransfer) ...[
+                  Text(
+                    _type == TransactionType.transfer ? 'Keterangan Transfer' : 'Merchant / Toko',
+                    style: AppTypography.caption.copyWith(
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor, width: 0.8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                    child: TextField(
+                      controller: _merchantController,
+                      style: AppTypography.bodyMedium,
+                      decoration: InputDecoration(
+                        icon: Icon(
+                          Icons.storefront_outlined,
+                          size: 19,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                        hintText: _type == TransactionType.transfer
+                            ? 'Keterangan transfer (opsional)'
+                            : 'Merchant, toko, atau sumber (opsional)',
+                        border: InputBorder.none,
+                        hintStyle: AppTypography.caption.copyWith(
+                          color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  categoriesAsync.when(
-                    data: (categories) {
-                      if (categories.isEmpty) {
-                        return const Text('Tidak ada kategori tersedia.');
-                      }
-                      return SizedBox(
-                        height: 85,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: categories.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 10),
-                          itemBuilder: (context, index) {
-                            final cat = categories[index];
-                            final isSelected = _selectedCategoryId == cat.id;
-                            final catColor = AppIcons.parseColor(cat.colorHex);
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() => _selectedCategoryId = cat.id);
-                              },
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  AnimatedContainer(
-                                    duration: const Duration(milliseconds: 150),
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? catColor
-                                          : (isDark
-                                              ? AppColors.surfaceElevatedDark
-                                              : AppColors.backgroundLight),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: isSelected ? catColor : Colors.transparent,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      AppIcons.getIcon(cat.iconKey),
-                                      color: isSelected
-                                          ? Colors.white
-                                          : (isDark
-                                              ? AppColors.textPrimaryDark
-                                              : AppColors.textPrimaryLight),
-                                      size: 22,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  SizedBox(
-                                    width: 64,
-                                    child: Text(
-                                      cat.name,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                        color: isSelected
-                                            ? catColor
-                                            : (isDark
-                                                ? AppColors.textSecondaryDark
-                                                : AppColors.textSecondaryLight),
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                    loading: () => const SizedBox(height: 60, child: Center(child: CircularProgressIndicator())),
-                    error: (e, _) => const Text('Gagal memuat kategori', style: TextStyle(color: Colors.red, fontSize: 13)),
+                    ),
                   ),
                   const SizedBox(height: 16),
                 ],
 
-                // 5. Merchant / Toko / Penerima (hanya jika bukan transfer eksternal)
-                if (_type != TransactionType.transfer || !_isExternalTransfer) ...[
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: TextField(
-                      controller: _merchantController,
-                      decoration: InputDecoration(
-                        icon: const Icon(Icons.storefront_rounded, size: 20),
-                        hintText: _type == TransactionType.transfer
-                            ? 'Keterangan transfer (opsional)'
-                            : 'Merchant / Toko / Sumber (opsional)',
-                        border: InputBorder.none,
-                        hintStyle: AppTypography.subhead.copyWith(
-                          color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                        ),
-                      ),
-                    ),
+                // 6. Tanggal & Waktu Transaksi
+                Text(
+                  'Waktu Transaksi',
+                  style: AppTypography.caption.copyWith(
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(height: 12),
-                ],
-
-                // 6. Tanggal & Waktu
-                GestureDetector(
+                ),
+                const SizedBox(height: 6),
+                InkWell(
                   onTap: _selectDate,
+                  borderRadius: BorderRadius.circular(12),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
+                      color: cardBg,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor, width: 0.8),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today_rounded, size: 20),
-                        const SizedBox(width: 12),
-                        const Text('Waktu Transaksi', style: AppTypography.callout),
-                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 18,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             DateFormatter.formatDateAndTime(_occurredAt.toIso8601String()),
-                            textAlign: TextAlign.end,
-                            style: AppTypography.subhead.copyWith(
-                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right, size: 18),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
                       ],
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
-                // 7. Catatan / Notes
+                // 7. Catatan Tambahan (Notes)
+                Text(
+                  'Catatan',
+                  style: AppTypography.caption.copyWith(
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
                 Container(
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
+                    color: cardBg,
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor, width: 0.8),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                   child: TextField(
                     controller: _notesController,
                     maxLines: 2,
+                    style: AppTypography.bodyMedium,
                     decoration: InputDecoration(
-                      icon: const Icon(Icons.notes_rounded, size: 20),
-                      hintText: 'Catatan tambahan (opsional)',
+                      icon: Icon(
+                        Icons.edit_note_rounded,
+                        size: 20,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                      hintText: 'Rincian item atau catatan tambahan (opsional)',
                       border: InputBorder.none,
-                      hintStyle: AppTypography.subhead.copyWith(
-                        color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+                      hintStyle: AppTypography.caption.copyWith(
+                        color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
                       ),
                     ),
                   ),
@@ -1018,14 +977,34 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
                 const SizedBox(height: 24),
 
-                // Tombol Simpan Utama di Bawah
-                AppButton(
-                  label: 'Simpan Transaksi',
-                  isLoading: _isLoading,
-                  onPressed: _isLoading ? null : _save,
+                // 8. Tombol Simpan Utama
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      foregroundColor: isDark ? AppColors.backgroundDark : Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey),
+                          )
+                        : Text(
+                            widget.initialTransaction != null ? 'Simpan Perubahan' : 'Simpan Transaksi',
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                          ),
+                  ),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -1036,22 +1015,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
   Widget _buildTypeSegment(TransactionType type, String title, bool isDark) {
     final isSelected = _type == type;
-    Color activeColor;
-    switch (type) {
-      case TransactionType.expense:
-        activeColor = isDark ? AppColors.expenseDark : AppColors.expenseLight;
-        break;
-      case TransactionType.income:
-        activeColor = isDark ? AppColors.incomeDark : AppColors.incomeLight;
-        break;
-      case TransactionType.transfer:
-        activeColor = isDark ? AppColors.transferDark : AppColors.transferLight;
-        break;
-    }
+    final activeBg = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final activeFg = isDark ? AppColors.backgroundDark : Colors.white;
+    final inactiveFg = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 
     return Expanded(
       child: GestureDetector(
         onTap: () {
+          AppHaptics.selection();
           setState(() {
             _type = type;
             _selectedCategoryId = null; // Reset category when switching type
@@ -1061,19 +1032,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected
-                ? (isDark ? AppColors.surfaceCardDark : Colors.white)
-                : Colors.transparent,
+            color: isSelected ? activeBg : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    )
-                  ]
-                : null,
           ),
           child: Text(
             title,
@@ -1081,9 +1041,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              color: isSelected
-                  ? activeColor
-                  : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+              color: isSelected ? activeFg : inactiveFg,
             ),
           ),
         ),

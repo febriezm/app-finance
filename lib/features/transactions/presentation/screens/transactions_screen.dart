@@ -198,8 +198,36 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
                 const SizedBox(height: 20),
 
-                // Tombol Batalkan Transaksi (Void)
-                if (tx.status == TransactionStatus.confirmed)
+                // Tombol Aksi Transaksi (Edit & Batalkan)
+                if (tx.status == TransactionStatus.confirmed) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      icon: Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      ),
+                      label: Text(
+                        'Edit Transaksi',
+                        style: TextStyle(
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: borderColor, width: 0.8),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () async {
+                        unawaited(AppHaptics.selection());
+                        Navigator.of(context).pop();
+                        await AddTransactionSheet.show(context, initialTransaction: item);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -263,6 +291,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       },
                     ),
                   ),
+                ],
               ],
             ),
           ),
