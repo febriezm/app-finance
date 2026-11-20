@@ -67,4 +67,42 @@ class WalletsController extends StateNotifier<AsyncValue<void>> {
       return false;
     }
   }
+
+  Future<bool> updateWallet({
+    required String id,
+    required String name,
+    required WalletType type,
+    required int openingBalance,
+    String? iconKey,
+    String? colorHex,
+    required bool isArchived,
+    required String openingDate,
+    required String currencyCode,
+    required String createdAt,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final now = DateTime.now().toUtc().toIso8601String();
+      final updated = Wallet(
+        id: id,
+        name: name.trim(),
+        type: type,
+        openingBalance: openingBalance,
+        openingDate: openingDate,
+        currencyCode: currencyCode,
+        iconKey: iconKey ?? 'wallet',
+        colorHex: colorHex ?? '0xFF0E7A4A',
+        isArchived: isArchived,
+        createdAt: createdAt,
+        updatedAt: now,
+      );
+      await _repository.updateWallet(updated);
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e, st) {
+      debugPrint('Error updating wallet: $e\n$st');
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
 }
