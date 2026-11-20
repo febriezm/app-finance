@@ -1,45 +1,70 @@
 import 'package:flutter/material.dart';
 
-/// Palet warna aplikasi yang mematuhi pedoman Apple Human Interface Guidelines (HIG).
+/// Palet warna aplikasi MyFinance Minimal — Quiet, Clean, Premium.
 ///
-/// Aturan:
-/// - Warna semantik berpasangan untuk Light Mode & Dark Mode.
-/// - Emerald/Green untuk kondisi positif (pemasukan/surplus).
-/// - Crimson/Red untuk pengeluaran/peringatan.
-/// - Navy & Neutral sebagai warna dasar permukaan dan teks.
-/// - Rasio kontras terjamin >= 4.5:1 untuk teks standar.
+/// Prinsip:
+/// - Warna digunakan secara terbatas dan fungsional.
+/// - Hijau murni untuk income / status positif.
+/// - Merah murni untuk expense / status peringatan.
+/// - Whitespace dan neutral tones sebagai pemisah utama.
 class AppColors {
   AppColors._();
 
-  // === Emerald Green (Income / Positive / Surplus) ===
-  static const Color incomeLight = Color(0xFF0E7A4A);
-  static const Color incomeDark = Color(0xFF2ED573);
-  static const Color incomeContainerLight = Color(0xFFE6F7EF);
-  static const Color incomeContainerDark = Color(0xFF0F3B24);
+  // === Light Mode (Minimal & Clean) ===
+  static const Color backgroundLight = Color(0xFFFAFAF8);
+  static const Color surfaceLight = Color(0xFFFFFFFF);
+  static const Color surfaceCardLight = Color(0xFFFFFFFF);
+  static const Color surfaceElevatedLight = Color(0xFFFFFFFF);
+  static const Color borderLight = Color(0xFFE5E7EB);
+  static const Color dividerLight = Color(0xFFE5E7EB);
 
-  // === Crimson Red (Expense / Warning / Over-budget) ===
-  static const Color expenseLight = Color(0xFFD63031);
-  static const Color expenseDark = Color(0xFFFF5252);
-  static const Color expenseContainerLight = Color(0xFFFFEEEE);
-  static const Color expenseContainerDark = Color(0xFF4A1010);
+  static const Color textPrimaryLight = Color(0xFF171717);
+  static const Color textSecondaryLight = Color(0xFF737373);
+  static const Color textTertiaryLight = Color(0xFFA3A3A3);
+  static const Color textDisabledLight = Color(0xFFD4D4D4);
 
-  // === Transfer / Neutral Blue ===
-  static const Color transferLight = Color(0xFF0984E3);
-  static const Color transferDark = Color(0xFF70A1FF);
-  static const Color transferContainerLight = Color(0xFFEBF5FB);
-  static const Color transferContainerDark = Color(0xFF0E3254);
+  // === Dark Mode (Quiet & Premium) ===
+  static const Color backgroundDark = Color(0xFF121212);
+  static const Color surfaceDark = Color(0xFF1C1C1C);
+  static const Color surfaceCardDark = Color(0xFF1C1C1C);
+  static const Color surfaceElevatedDark = Color(0xFF262626);
+  static const Color borderDark = Color(0xFF262626);
+  static const Color dividerDark = Color(0xFF262626);
 
-  // === Warning / Near-limit ===
-  static const Color warningLight = Color(0xFFE67E22);
-  static const Color warningDark = Color(0xFFFFA502);
-  static const Color warningContainerLight = Color(0xFFFEF5E7);
-  static const Color warningContainerDark = Color(0xFF4E2E08);
+  static const Color textPrimaryDark = Color(0xFFF5F5F5);
+  static const Color textSecondaryDark = Color(0xFFA3A3A3);
+  static const Color textTertiaryDark = Color(0xFF737373);
+  static const Color textDisabledDark = Color(0xFF525252);
 
-  // === Primary Navy Brand ===
-  static const Color primaryNavy = Color(0xFF1E272E);
-  static const Color primaryNavyLight = Color(0xFF2C3E50);
+  // === Semantik: Income (Hijau Terbatas) ===
+  static const Color incomeLight = Color(0xFF15803D);
+  static const Color incomeDark = Color(0xFF22C55E);
+  static const Color incomeContainerLight = Color(0xFFF0FDF4);
+  static const Color incomeContainerDark = Color(0xFF14532D);
 
-  // === Semantic Aliases ===
+  // === Semantik: Expense (Merah Terbatas) ===
+  static const Color expenseLight = Color(0xFFDC2626);
+  static const Color expenseDark = Color(0xFFEF4444);
+  static const Color expenseContainerLight = Color(0xFFFEF2F2);
+  static const Color expenseContainerDark = Color(0xFF7F1D1D);
+
+  // === Semantik: Transfer / Netral ===
+  static const Color transferLight = Color(0xFF4B5563);
+  static const Color transferDark = Color(0xFF9CA3AF);
+  static const Color transferContainerLight = Color(0xFFF3F4F6);
+  static const Color transferContainerDark = Color(0xFF262626);
+
+  // === Semantik: Peringatan / Limit ===
+  static const Color warningLight = Color(0xFFD97706);
+  static const Color warningDark = Color(0xFFF59E0B);
+  static const Color warningContainerLight = Color(0xFFFFFBEB);
+  static const Color warningContainerDark = Color(0xFF78350F);
+
+  // === Brand / Aksen Utama (Minimalis Monokrom) ===
+  static const Color primaryNavy = Color(0xFF171717);
+  static const Color primaryNavyLight = Color(0xFF262626);
+
+  // === Aliases untuk kompatibilitas mundur ===
   static const Color primary = incomeLight;
   static const Color primaryLight = incomeDark;
   static const Color error = expenseLight;
@@ -48,32 +73,4 @@ class AppColors {
   static const Color accentLight = transferDark;
   static const Color surfaceModalLight = surfaceElevatedLight;
   static const Color surfaceModalDark = surfaceElevatedDark;
-
-  // === Light Mode Surfaces ===
-  static const Color backgroundLight = Color(0xFFF8F9FA);
-  static const Color surfaceLight = Color(0xFFFFFFFF);
-  static const Color surfaceCardLight = Color(0xFFFFFFFF);
-  static const Color surfaceElevatedLight = Color(0xFFFFFFFF);
-  static const Color borderLight = Color(0xFFE5E7EB);
-  static const Color dividerLight = Color(0xFFF1F2F6);
-
-  // === Light Mode Text ===
-  static const Color textPrimaryLight = Color(0xFF111827);   // Contrast 14.5:1 on white
-  static const Color textSecondaryLight = Color(0xFF4B5563); // Contrast 7.1:1 on white
-  static const Color textTertiaryLight = Color(0xFF6B7280);  // Contrast 4.6:1 on white
-  static const Color textDisabledLight = Color(0xFF9CA3AF);
-
-  // === Dark Mode Surfaces ===
-  static const Color backgroundDark = Color(0xFF0B0F14);
-  static const Color surfaceDark = Color(0xFF151C24);
-  static const Color surfaceCardDark = Color(0xFF1E2833);
-  static const Color surfaceElevatedDark = Color(0xFF26323F);
-  static const Color borderDark = Color(0xFF2D3B48);
-  static const Color dividerDark = Color(0xFF1A232D);
-
-  // === Dark Mode Text ===
-  static const Color textPrimaryDark = Color(0xFFF9FAFB);   // Contrast 15.8:1 on 0xFF151C24
-  static const Color textSecondaryDark = Color(0xFFD1D5DB); // Contrast 9.2:1
-  static const Color textTertiaryDark = Color(0xFF9CA3AF);  // Contrast 4.8:1
-  static const Color textDisabledDark = Color(0xFF6B7280);
 }
