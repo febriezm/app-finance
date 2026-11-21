@@ -5,8 +5,7 @@ import '../../../../app/app_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/file_picker_helper.dart';
-import '../../../../shared/widgets/app_card.dart';
-import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../../shared/widgets/shared_widgets.dart';
 
 class BackupRestoreScreen extends ConsumerStatefulWidget {
   const BackupRestoreScreen({super.key});
@@ -253,49 +252,35 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     );
   }
 
-  void _confirmRestore(BuildContext context, int recordsCount) {
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Konfirmasi Pemulihan'),
-        content: Text(
+  Future<void> _confirmRestore(BuildContext context, int recordsCount) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirm = await MinimalDialog.showConfirm(
+      context,
+      title: 'Konfirmasi Pemulihan',
+      message:
           'Aplikasi akan mengganti seluruh data yang ada saat ini dengan data dari cadangan ($recordsCount data).\n\nPastikan Anda telah mencadangkan data saat ini bila diperlukan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () async {
-              Navigator.pop(dialogCtx);
-              final messenger = ScaffoldMessenger.of(context);
-              final jsonStr = _jsonInputController.text;
-              final success = await ref
-                  .read(backupRestoreControllerProvider.notifier)
-                  .restoreBackup(jsonStr);
-
-              if (success && mounted) {
-                _jsonInputController.clear();
-                ref.read(backupRestoreControllerProvider.notifier).clearValidation();
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Data berhasil dipulihkan!')),
-                );
-              }
-            },
-            child: const Text('Pulihkan Data'),
-          ),
-        ],
-      ),
+      confirmText: 'Pulihkan Data',
     );
+
+    if (confirm == true && mounted) {
+      final jsonStr = _jsonInputController.text;
+      final success = await ref
+          .read(backupRestoreControllerProvider.notifier)
+          .restoreBackup(jsonStr);
+
+      if (success && mounted) {
+        _jsonInputController.clear();
+        ref.read(backupRestoreControllerProvider.notifier).clearValidation();
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Data berhasil dipulihkan!')),
+        );
+      }
+    }
   }
 
   void _confirmReset(BuildContext context) {
     final resetConfirmController = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
@@ -304,21 +289,67 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           final isConfirmed = resetConfirmController.text.trim().toUpperCase() == 'RESET';
 
           return AlertDialog(
-            title: const Text('Hapus Seluruh Data?'),
+            backgroundColor: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                width: 0.8,
+              ),
+            ),
+            titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            title: Text(
+              'Hapus Seluruh Data?',
+              style: AppTypography.title3.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 17,
+                letterSpacing: -0.3,
+              ),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Tindakan ini akan menghapus permanen seluruh transaksi, riwayat mutasi, dompet, dan anggaran di perangkat ini.\n\nKetik kata "RESET" di bawah ini untuk mengonfirmasi:',
-                  style: TextStyle(color: Colors.red),
+                  style: TextStyle(
+                    color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 TextField(
                   controller: resetConfirmController,
-                  decoration: const InputDecoration(
+                  style: AppTypography.bodyBold,
+                  decoration: InputDecoration(
                     hintText: 'Ketik RESET',
-                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceElevatedLight,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                        width: 0.8,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                        width: 0.8,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                        width: 1.2,
+                      ),
+                    ),
                   ),
                   onChanged: (_) => setDialogState(() {}),
                 ),
@@ -326,13 +357,17 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             ),
             actions: [
               TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                ),
                 onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('Batal'),
+                child: const Text('Batal', style: TextStyle(fontSize: 14)),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isConfirmed ? AppColors.error : Colors.grey,
-                  foregroundColor: Colors.white,
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: isConfirmed
+                      ? (isDark ? AppColors.expenseDark : AppColors.expenseLight)
+                      : (isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight),
                 ),
                 onPressed: isConfirmed
                     ? () async {
@@ -348,7 +383,10 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                         }
                       }
                     : null,
-                child: const Text('Hapus Semua Data'),
+                child: const Text(
+                  'Hapus Semua Data',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
               ),
             ],
           );

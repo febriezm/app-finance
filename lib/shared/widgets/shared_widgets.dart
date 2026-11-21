@@ -9,6 +9,7 @@ export 'finance_amount_text.dart';
 export 'finance_summary_row.dart';
 export 'loading_indicator.dart';
 export 'minimal_bottom_navigation.dart';
+export 'minimal_dialog.dart';
 export 'minimal_icon_button.dart';
 export 'minimal_month_selector.dart';
 export 'minimal_section_header.dart';

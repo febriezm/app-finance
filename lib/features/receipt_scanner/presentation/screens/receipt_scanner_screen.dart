@@ -142,56 +142,32 @@ class _ReceiptScannerScreenState extends ConsumerState<ReceiptScannerScreen> {
         );
       } else {
         if (!mounted) return;
-        await showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Gagal Memindai Struk'),
-            content: const Text(
-              'Teks struk tidak dapat dikenali secara otomatis. Apakah Anda ingin beralih mencatat transaksi secara manual?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pop();
-                  AddTransactionSheet.show(context, initialType: TransactionType.expense);
-                },
-                child: const Text('Input Manual'),
-              ),
-            ],
-          ),
+        final manual = await MinimalDialog.showConfirm(
+          context,
+          title: 'Gagal Memindai Struk',
+          message: 'Teks struk tidak dapat dikenali secara otomatis. Apakah Anda ingin beralih mencatat transaksi secara manual?',
+          cancelText: 'Batal',
+          confirmText: 'Input Manual',
         );
+        if (manual == true && mounted) {
+          Navigator.of(context).pop();
+          unawaited(AddTransactionSheet.show(context, initialType: TransactionType.expense));
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessing = false);
-        await showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Pindai Struk Bermasalah'),
-            content: Text(
-              'Terjadi kendala saat memindai: $e.\n\nApakah Anda ingin mencatat pengeluaran secara manual?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pop();
-                  AddTransactionSheet.show(context, initialType: TransactionType.expense);
-                },
-                child: const Text('Input Manual'),
-              ),
-            ],
-          ),
+        final manual = await MinimalDialog.showConfirm(
+          context,
+          title: 'Pindai Struk Bermasalah',
+          message: 'Terjadi kendala saat memindai: $e.\n\nApakah Anda ingin mencatat pengeluaran secara manual?',
+          cancelText: 'Batal',
+          confirmText: 'Input Manual',
         );
+        if (manual == true && mounted) {
+          Navigator.of(context).pop();
+          unawaited(AddTransactionSheet.show(context, initialType: TransactionType.expense));
+        }
       }
     }
   }

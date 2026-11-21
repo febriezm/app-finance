@@ -253,30 +253,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       ),
                       onPressed: () async {
                         unawaited(AppHaptics.selection());
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Batalkan Transaksi?'),
-                            content: const Text(
-                              'Transaksi ini akan ditandai "Voided" dan tidak akan lagi memengaruhi saldo dompet maupun laporan anggaran.',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(false),
-                                child: const Text('Batal'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(true),
-                                child: Text(
-                                  'Ya, Batalkan',
-                                  style: TextStyle(
-                                    color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        final confirm = await MinimalDialog.showConfirm(
+                          context,
+                          title: 'Batalkan Transaksi?',
+                          message: 'Transaksi ini akan ditandai "Voided" dan tidak akan lagi memengaruhi saldo dompet maupun laporan anggaran.',
+                          confirmText: 'Ya, Batalkan',
+                          isDestructive: true,
                         );
 
                         if (confirm == true) {

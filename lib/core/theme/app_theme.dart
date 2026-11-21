@@ -103,6 +103,30 @@ class AppTheme {
         selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
         unselectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.surfaceModalLight,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          side: const BorderSide(color: AppColors.borderLight, width: 0.8),
+        ),
+        titleTextStyle: AppTypography.title3.copyWith(
+          color: AppColors.textPrimaryLight,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: AppTypography.body.copyWith(
+          color: AppColors.textSecondaryLight,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1E1E1E),
+        contentTextStyle: AppTypography.caption.copyWith(color: Colors.white, fontSize: 13),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        ),
+        elevation: 1,
+      ),
       dividerTheme: const DividerThemeData(
         color: AppColors.dividerLight,
         thickness: 0.8,
@@ -205,6 +229,30 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
         unselectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.surfaceModalDark,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          side: const BorderSide(color: AppColors.borderDark, width: 0.8),
+        ),
+        titleTextStyle: AppTypography.title3.copyWith(
+          color: AppColors.textPrimaryDark,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: AppTypography.body.copyWith(
+          color: AppColors.textSecondaryDark,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF2A2A2A),
+        contentTextStyle: AppTypography.caption.copyWith(color: Colors.white, fontSize: 13),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        ),
+        elevation: 1,
       ),
       dividerTheme: const DividerThemeData(
         color: AppColors.dividerDark,

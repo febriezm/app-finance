@@ -34,17 +34,18 @@ class ScaffoldWithNavBar extends StatelessWidget {
 
   void _showQuickActionModal(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? AppColors.surfaceCardDark : AppColors.surfaceLight,
+      backgroundColor: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
       ),
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,93 +53,101 @@ class ScaffoldWithNavBar extends StatelessWidget {
                 Center(
                   child: Container(
                     width: 36,
-                    height: 5,
+                    height: 4,
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                      color: dividerColor,
                       borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                const Text('Aksi Cepat', style: AppTypography.title3),
-                const SizedBox(height: AppSpacing.md),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.expenseContainerDark : AppColors.expenseContainerLight,
-                      shape: BoxShape.circle,
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    'Aksi Cepat',
+                    style: AppTypography.title3.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 17,
+                      letterSpacing: -0.3,
                     ),
-                    child: const Icon(Icons.arrow_upward_rounded, color: AppColors.expenseLight),
                   ),
-                  title: const Text('Catat Pengeluaran', style: AppTypography.headline),
+                ),
+                const SizedBox(height: 12),
+
+                // Catat Pengeluaran
+                _buildActionTile(
+                  context,
+                  isDark: isDark,
+                  icon: Icons.arrow_upward_rounded,
+                  iconColor: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                  title: 'Catat Pengeluaran',
+                  subtitle: 'Catat belanja atau pengeluaran harian',
                   onTap: () {
                     Navigator.pop(ctx);
                     AddTransactionSheet.show(context, initialType: TransactionType.expense);
                   },
                 ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.incomeContainerDark : AppColors.incomeContainerLight,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.arrow_downward_rounded, color: AppColors.incomeLight),
-                  ),
-                  title: const Text('Catat Pemasukan', style: AppTypography.headline),
+                Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
+
+                // Catat Pemasukan
+                _buildActionTile(
+                  context,
+                  isDark: isDark,
+                  icon: Icons.arrow_downward_rounded,
+                  iconColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+                  title: 'Catat Pemasukan',
+                  subtitle: 'Gaji, bonus, atau pendapatan lainnya',
                   onTap: () {
                     Navigator.pop(ctx);
                     AddTransactionSheet.show(context, initialType: TransactionType.income);
                   },
                 ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.transferContainerDark : AppColors.transferContainerLight,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.swap_horiz_rounded, color: AppColors.transferLight),
-                  ),
-                  title: const Text('Transfer Saldo', style: AppTypography.headline),
+                Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
+
+                // Transfer Saldo
+                _buildActionTile(
+                  context,
+                  isDark: isDark,
+                  icon: Icons.swap_horiz_rounded,
+                  iconColor: isDark ? AppColors.transferDark : AppColors.transferLight,
+                  title: 'Transfer Saldo',
+                  subtitle: 'Pindah dana antar rekening & dompet',
                   onTap: () {
                     Navigator.pop(ctx);
                     AddTransactionSheet.show(context, initialType: TransactionType.transfer);
                   },
                 ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.transferContainerDark : AppColors.transferContainerLight,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.pie_chart_outline, color: AppColors.transferLight),
-                  ),
-                  title: const Text('Anggaran Bulanan', style: AppTypography.headline),
-                  subtitle: const Text('Kelola batas pengeluaran & kategori', style: AppTypography.caption1),
+                Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
+
+                // Anggaran Bulanan
+                _buildActionTile(
+                  context,
+                  isDark: isDark,
+                  icon: Icons.pie_chart_outline_rounded,
+                  iconColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  title: 'Anggaran Bulanan',
+                  subtitle: 'Kelola batas pengeluaran & kategori',
                   onTap: () {
                     Navigator.pop(ctx);
                     context.push(AppRouter.budgets);
                   },
                 ),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceElevatedDark : AppColors.dividerLight,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.document_scanner_outlined, color: AppColors.primaryNavyLight),
-                  ),
-                  title: const Text('Scan Struk (OCR)', style: AppTypography.headline),
-                  subtitle: const Text('Ekstraksi otomatis struk belanja on-device', style: AppTypography.caption1),
+                Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
+
+                // Scan Struk (OCR)
+                _buildActionTile(
+                  context,
+                  isDark: isDark,
+                  icon: Icons.document_scanner_outlined,
+                  iconColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  title: 'Scan Struk (OCR)',
+                  subtitle: 'Ekstraksi otomatis struk belanja on-device',
                   onTap: () {
                     Navigator.pop(ctx);
                     context.push(AppRouter.receiptScanner);
                   },
                 ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -147,42 +156,129 @@ class ScaffoldWithNavBar extends StatelessWidget {
     );
   }
 
+  Widget _buildActionTile(
+    BuildContext context, {
+    required bool isDark,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: () {
+        AppHaptics.selection();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceElevatedLight,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                  width: 0.6,
+                ),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTypography.bodyBold.copyWith(fontSize: 14),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppTypography.caption1.copyWith(
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentIndex = navigationShell.currentIndex;
     final navIndex = currentIndex >= 2 ? currentIndex + 1 : currentIndex;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: navIndex,
-        onTap: (index) => _onTap(context, index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home_filled),
-            label: 'Home',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          border: Border(
+            top: BorderSide(
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+              width: 0.6,
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_outlined),
-            activeIcon: Icon(Icons.receipt_long),
-            label: 'Transaksi',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle, size: 36, color: AppColors.primaryNavy),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            activeIcon: Icon(Icons.account_balance_wallet),
-            label: 'Dompet',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_outlined),
-            activeIcon: Icon(Icons.bar_chart),
-            label: 'Laporan',
-          ),
-        ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: navIndex,
+          onTap: (index) => _onTap(context, index),
+          items: [
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home_rounded),
+              label: 'Home',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.receipt_long_outlined),
+              activeIcon: Icon(Icons.receipt_long_rounded),
+              label: 'Transaksi',
+            ),
+            BottomNavigationBarItem(
+              icon: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.add_rounded,
+                  size: 22,
+                  color: isDark ? AppColors.backgroundDark : Colors.white,
+                ),
+              ),
+              label: '',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              activeIcon: Icon(Icons.account_balance_wallet_rounded),
+              label: 'Dompet',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart_outlined),
+              activeIcon: Icon(Icons.bar_chart_rounded),
+              label: 'Laporan',
+            ),
+          ],
+        ),
       ),
     );
   }

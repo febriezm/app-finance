@@ -329,27 +329,12 @@ class WalletsScreen extends ConsumerWidget {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Aktifkan Kembali Dompet?'),
-                                  content: Text(
-                                    'Dompet "${item.wallet.name}" akan kembali ke daftar aktif dan dapat dipilih sebagai sumber dana transaksi.',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.of(ctx).pop(false),
-                                      child: const Text('Batal'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.of(ctx).pop(true),
-                                      child: const Text(
-                                        'Aktifkan',
-                                        style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              final confirm = await MinimalDialog.showConfirm(
+                                context,
+                                title: 'Aktifkan Kembali Dompet?',
+                                message: 'Dompet "${item.wallet.name}" akan kembali ke daftar aktif dan dapat dipilih sebagai sumber dana transaksi.',
+                                confirmText: 'Aktifkan',
+                                confirmColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
                               );
 
                               if (confirm == true) {
@@ -375,27 +360,12 @@ class WalletsScreen extends ConsumerWidget {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Arsipkan Dompet?'),
-                                  content: Text(
-                                    'Dompet "${item.wallet.name}" akan dipindahkan ke daftar arsip cadangan. Riwayat mutasi transaksi tetap tersimpan utuh.',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.of(ctx).pop(false),
-                                      child: const Text('Batal'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.of(ctx).pop(true),
-                                      child: const Text(
-                                        'Arsipkan',
-                                        style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              final confirm = await MinimalDialog.showConfirm(
+                                context,
+                                title: 'Arsipkan Dompet?',
+                                message: 'Dompet "${item.wallet.name}" akan dipindahkan ke daftar arsip cadangan. Riwayat mutasi transaksi tetap tersimpan utuh.',
+                                confirmText: 'Arsipkan',
+                                confirmColor: Colors.orange,
                               );
 
                               if (confirm == true) {
@@ -698,7 +668,7 @@ class WalletsScreen extends ConsumerWidget {
   }
 }
 
-/// Modal Tambah Dompet Baru — Minimal & Bersih
+/// Modal Tambah Dompet Baru — MyFinance Minimal (Quiet, Clean, Premium)
 class _AddWalletModal extends ConsumerStatefulWidget {
   const _AddWalletModal();
 
@@ -715,6 +685,7 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
   String _selectedColorHex = '0xFF0E7A4A';
   String _selectedIconKey = 'bank';
   bool _isLoading = false;
+  String? _nameError;
 
   final List<String> _colors = const [
     '0xFF0E7A4A', // Emerald
@@ -745,16 +716,40 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
     }
   }
 
+  void _onTypeSelected(WalletType type) {
+    unawaited(AppHaptics.selection());
+    setState(() {
+      _selectedType = type;
+      switch (type) {
+        case WalletType.cash:
+          _selectedIconKey = 'cash';
+          break;
+        case WalletType.bank:
+          _selectedIconKey = 'bank';
+          break;
+        case WalletType.eWallet:
+          _selectedIconKey = 'card';
+          break;
+        case WalletType.other:
+          _selectedIconKey = 'wallet';
+          break;
+      }
+    });
+  }
+
   Future<void> _submit() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama dompet wajib diisi.')),
-      );
+      setState(() {
+        _nameError = 'Nama dompet wajib diisi.';
+      });
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _nameError = null;
+    });
 
     try {
       final success = await ref.read(walletsControllerProvider.notifier).createWallet(
@@ -778,10 +773,7 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
         } else {
           final err = ref.read(walletsControllerProvider).error;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Gagal membuat dompet: ${err ?? "Terjadi kesalahan"}'),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text('Gagal membuat dompet: ${err ?? "Terjadi kesalahan"}')),
           );
         }
       }
@@ -789,10 +781,7 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Terjadi error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Terjadi error: $e')),
         );
       }
     }
@@ -802,6 +791,10 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
+    final dividerColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
+    final surfaceElevated = isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceElevatedLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 
     return Container(
       constraints: BoxConstraints(
@@ -822,12 +815,12 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+                  color: dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
             // Top Header: Batal, Title, Simpan
             Padding(
@@ -839,10 +832,7 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                     onPressed: () => Navigator.of(context).pop(),
                     child: Text(
                       'Batal',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
+                      style: TextStyle(fontSize: 15, color: textSecondary),
                     ),
                   ),
                   Text(
@@ -869,11 +859,7 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                 ],
               ),
             ),
-            Divider(
-              height: 1,
-              thickness: 0.6,
-              color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-            ),
+            Divider(height: 1, thickness: 0.6, color: dividerColor),
 
             Flexible(
               child: ListView(
@@ -882,41 +868,53 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                 children: [
                   // Nama Dompet
                   Text(
-                    'Nama Dompet / Rekening',
-                    style: AppTypography.caption.copyWith(
+                    'NAMA DOMPET / REKENING',
+                    style: AppTypography.caption1.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                        width: 0.8,
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nameController,
+                    style: AppTypography.body,
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: BCA Utama, GoPay, Dompet Tunai',
+                      filled: true,
+                      fillColor: surfaceElevated,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor, width: 0.8),
                       ),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: TextField(
-                      controller: _nameController,
-                      style: AppTypography.body,
-                      decoration: const InputDecoration(
-                        hintText: 'Contoh: BCA Utama, GoPay, Dompet Tunai',
-                        border: InputBorder.none,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor, width: 0.8),
                       ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          width: 1.2,
+                        ),
+                      ),
+                      errorText: _nameError,
                     ),
+                    onChanged: (_) {
+                      if (_nameError != null) setState(() => _nameError = null);
+                    },
                   ),
 
                   const SizedBox(height: 20),
 
                   // Tipe Dompet
                   Text(
-                    'Tipe Dompet',
-                    style: AppTypography.caption.copyWith(
+                    'TIPE DOMPET',
+                    style: AppTypography.caption1.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -925,21 +923,35 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                     runSpacing: 8,
                     children: WalletType.values.map((type) {
                       final isSelected = _selectedType == type;
-                      return ChoiceChip(
-                        label: Text(type.displayName),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (selected) {
-                            unawaited(AppHaptics.selection());
-                            setState(() {
-                              _selectedType = type;
-                              if (type == WalletType.cash) _selectedIconKey = 'cash';
-                              if (type == WalletType.bank) _selectedIconKey = 'bank';
-                              if (type == WalletType.eWallet) _selectedIconKey = 'card';
-                              if (type == WalletType.other) _selectedIconKey = 'wallet';
-                            });
-                          }
-                        },
+                      return InkWell(
+                        onTap: () => _onTypeSelected(type),
+                        borderRadius: BorderRadius.circular(8),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? (isDark ? AppColors.surfaceElevatedDark : AppColors.textPrimaryLight)
+                                : (isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected
+                                  ? (isDark ? AppColors.borderLight : AppColors.textPrimaryLight)
+                                  : borderColor,
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            type.displayName,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              color: isSelected
+                                  ? (isDark ? AppColors.textPrimaryDark : Colors.white)
+                                  : textSecondary,
+                            ),
+                          ),
+                        ),
                       );
                     }).toList(),
                   ),
@@ -948,45 +960,54 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
 
                   // Saldo Awal
                   Text(
-                    'Saldo Awal',
-                    style: AppTypography.caption.copyWith(
+                    'SALDO AWAL',
+                    style: AppTypography.caption1.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                        width: 0.8,
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _openingBalanceController,
+                    keyboardType: TextInputType.number,
+                    style: AppTypography.title3.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Rp 0',
+                      filled: true,
+                      fillColor: surfaceElevated,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor, width: 0.8),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor, width: 0.8),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          width: 1.2,
+                        ),
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: TextField(
-                      controller: _openingBalanceController,
-                      keyboardType: TextInputType.number,
-                      style: AppTypography.body.copyWith(
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                      decoration: const InputDecoration(
-                        hintText: 'Rp 0',
-                        border: InputBorder.none,
-                      ),
-                      onChanged: _onBalanceChanged,
-                    ),
+                    onChanged: _onBalanceChanged,
                   ),
 
                   const SizedBox(height: 20),
 
                   // Pilihan Warna Aksen
                   Text(
-                    'Warna Aksen',
-                    style: AppTypography.caption.copyWith(
+                    'WARNA AKSEN',
+                    style: AppTypography.caption1.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -1001,51 +1022,30 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                         },
                         child: Container(
                           margin: const EdgeInsets.only(right: 14),
-                          width: 34,
-                          height: 34,
+                          padding: const EdgeInsets.all(2.5),
                           decoration: BoxDecoration(
-                            color: color,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: isSelected ? (isDark ? Colors.white : Colors.black87) : Colors.transparent,
-                              width: 2.5,
+                              color: isSelected
+                                  ? (isDark ? Colors.white : AppColors.textPrimaryLight)
+                                  : Colors.transparent,
+                              width: 2.0,
                             ),
                           ),
-                          child: isSelected
-                              ? const Icon(Icons.check, color: Colors.white, size: 18)
-                              : null,
+                          child: Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
                   ),
 
-                  const SizedBox(height: 28),
-
-                  // Tombol Simpan Utama
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: _isLoading ? null : _submit,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text(
-                              'Simpan Dompet',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -1056,7 +1056,7 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
   }
 }
 
-/// Modal Edit Dompet — Minimal & Bersih
+/// Modal Edit Dompet — MyFinance Minimal (Quiet, Clean, Premium)
 class _EditWalletModal extends ConsumerStatefulWidget {
   final Wallet wallet;
 
@@ -1072,6 +1072,7 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
   late String _selectedColorHex;
   late String _selectedIconKey;
   bool _isLoading = false;
+  String? _nameError;
 
   final List<String> _colors = const [
     '0xFF0E7A4A', // Emerald
@@ -1097,16 +1098,40 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
     super.dispose();
   }
 
+  void _onTypeSelected(WalletType type) {
+    unawaited(AppHaptics.selection());
+    setState(() {
+      _selectedType = type;
+      switch (type) {
+        case WalletType.cash:
+          _selectedIconKey = 'cash';
+          break;
+        case WalletType.bank:
+          _selectedIconKey = 'bank';
+          break;
+        case WalletType.eWallet:
+          _selectedIconKey = 'card';
+          break;
+        case WalletType.other:
+          _selectedIconKey = 'wallet';
+          break;
+      }
+    });
+  }
+
   Future<void> _submit() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama dompet wajib diisi.')),
-      );
+      setState(() {
+        _nameError = 'Nama dompet wajib diisi.';
+      });
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _nameError = null;
+    });
 
     try {
       final success = await ref.read(walletsControllerProvider.notifier).updateWallet(
@@ -1135,10 +1160,7 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
         } else {
           final err = ref.read(walletsControllerProvider).error;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Gagal memperbarui dompet: ${err ?? "Terjadi kesalahan"}'),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text('Gagal memperbarui: ${err ?? "Terjadi kesalahan"}')),
           );
         }
       }
@@ -1146,10 +1168,7 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Terjadi error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Terjadi error: $e')),
         );
       }
     }
@@ -1159,10 +1178,14 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
+    final dividerColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
+    final surfaceElevated = isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceElevatedLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
       padding: EdgeInsets.only(bottom: keyboardPadding),
       decoration: BoxDecoration(
@@ -1179,14 +1202,14 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+                  color: dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-            // Header
+            // Top Header: Batal, Title, Simpan
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -1196,10 +1219,7 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                     onPressed: () => Navigator.of(context).pop(),
                     child: Text(
                       'Batal',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
+                      style: TextStyle(fontSize: 15, color: textSecondary),
                     ),
                   ),
                   Text(
@@ -1226,11 +1246,7 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                 ],
               ),
             ),
-            Divider(
-              height: 1,
-              thickness: 0.6,
-              color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-            ),
+            Divider(height: 1, thickness: 0.6, color: dividerColor),
 
             Flexible(
               child: ListView(
@@ -1239,40 +1255,52 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                 children: [
                   // Nama Dompet
                   Text(
-                    'Nama Dompet / Rekening',
-                    style: AppTypography.caption.copyWith(
+                    'NAMA DOMPET / REKENING',
+                    style: AppTypography.caption1.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceElevatedDark : AppColors.backgroundLight,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                        width: 0.8,
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nameController,
+                    style: AppTypography.body,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: surfaceElevated,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor, width: 0.8),
                       ),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: TextField(
-                      controller: _nameController,
-                      style: AppTypography.body,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor, width: 0.8),
                       ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          width: 1.2,
+                        ),
+                      ),
+                      errorText: _nameError,
                     ),
+                    onChanged: (_) {
+                      if (_nameError != null) setState(() => _nameError = null);
+                    },
                   ),
 
                   const SizedBox(height: 20),
 
                   // Tipe Dompet
                   Text(
-                    'Tipe Dompet',
-                    style: AppTypography.caption.copyWith(
+                    'TIPE DOMPET',
+                    style: AppTypography.caption1.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -1281,21 +1309,35 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                     runSpacing: 8,
                     children: WalletType.values.map((type) {
                       final isSelected = _selectedType == type;
-                      return ChoiceChip(
-                        label: Text(type.displayName),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (selected) {
-                            unawaited(AppHaptics.selection());
-                            setState(() {
-                              _selectedType = type;
-                              if (type == WalletType.cash) _selectedIconKey = 'cash';
-                              if (type == WalletType.bank) _selectedIconKey = 'bank';
-                              if (type == WalletType.eWallet) _selectedIconKey = 'card';
-                              if (type == WalletType.other) _selectedIconKey = 'wallet';
-                            });
-                          }
-                        },
+                      return InkWell(
+                        onTap: () => _onTypeSelected(type),
+                        borderRadius: BorderRadius.circular(8),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? (isDark ? AppColors.surfaceElevatedDark : AppColors.textPrimaryLight)
+                                : (isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected
+                                  ? (isDark ? AppColors.borderLight : AppColors.textPrimaryLight)
+                                  : borderColor,
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            type.displayName,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              color: isSelected
+                                  ? (isDark ? AppColors.textPrimaryDark : Colors.white)
+                                  : textSecondary,
+                            ),
+                          ),
+                        ),
                       );
                     }).toList(),
                   ),
@@ -1304,10 +1346,11 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
 
                   // Warna Aksen
                   Text(
-                    'Warna Aksen',
-                    style: AppTypography.caption.copyWith(
+                    'WARNA AKSEN',
+                    style: AppTypography.caption1.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -1322,51 +1365,30 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                         },
                         child: Container(
                           margin: const EdgeInsets.only(right: 14),
-                          width: 34,
-                          height: 34,
+                          padding: const EdgeInsets.all(2.5),
                           decoration: BoxDecoration(
-                            color: color,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: isSelected ? (isDark ? Colors.white : Colors.black87) : Colors.transparent,
-                              width: 2.5,
+                              color: isSelected
+                                  ? (isDark ? Colors.white : AppColors.textPrimaryLight)
+                                  : Colors.transparent,
+                              width: 2.0,
                             ),
                           ),
-                          child: isSelected
-                              ? const Icon(Icons.check, color: Colors.white, size: 18)
-                              : null,
+                          child: Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
                   ),
 
-                  const SizedBox(height: 28),
-
-                  // Tombol Simpan Perubahan
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: _isLoading ? null : _submit,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text(
-                              'Simpan Perubahan',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
