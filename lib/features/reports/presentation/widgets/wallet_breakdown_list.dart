@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/formatting/currency_formatter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../shared/widgets/app_card.dart';
+import '../../../../core/utils/app_haptics.dart';
+import '../../../../shared/widgets/shared_widgets.dart';
 import '../../domain/entities/wallet_report_item.dart';
 
+/// Daftar distribusi transaksi per akun dompet — MyFinance Minimal.
 class WalletBreakdownList extends StatelessWidget {
   final List<WalletReportItem> items;
   final bool isDark;
@@ -21,13 +24,13 @@ class WalletBreakdownList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(24),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Center(
           child: Text(
             'Belum ada transaksi pada dompet di bulan ini.',
-            style: AppTypography.subhead.copyWith(
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            style: AppTypography.caption.copyWith(
+              color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
             ),
           ),
         ),
@@ -35,98 +38,97 @@ class WalletBreakdownList extends StatelessWidget {
     }
 
     return Column(
-      children: items.map((item) {
-        final iconData = AppIcons.getIcon(item.wallet.iconKey);
-        final color = item.wallet.colorHex != null
-            ? Color(int.parse(item.wallet.colorHex!))
-            : AppColors.primary;
-
+      children: items.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final item = entry.value;
+        final walletColor = AppIcons.parseColor(item.wallet.colorHex);
         final isNetPositive = item.netFlow >= 0;
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: AppCard(
-            padding: const EdgeInsets.all(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: onWalletTap != null ? () => onWalletTap!(item) : null,
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(10),
+        return Column(
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                unawaited(AppHaptics.light());
+                onWalletTap?.call(item);
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: walletColor.withValues(alpha: isDark ? 0.2 : 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: walletColor.withValues(alpha: isDark ? 0.4 : 0.25),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Icon(
+                        AppIcons.getIcon(item.wallet.iconKey),
+                        color: isDark ? Colors.white : walletColor,
+                        size: 20,
+                      ),
                     ),
-                    child: Icon(iconData, color: color, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.wallet.name,
+                            style: AppTypography.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${item.transactionCount} transaksi  •  +${CurrencyFormatter.formatRupiah(item.incomeAmount + item.transferInAmount)}  •  -${CurrencyFormatter.formatRupiah(item.expenseAmount + item.transferOutAmount)}',
+                            style: AppTypography.caption.copyWith(
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          item.wallet.name,
-                          style: AppTypography.subhead.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        FinanceAmountText(
+                          amount: item.netFlow,
+                          type: AmountDisplayType.auto,
+                          style: AppTypography.balanceSmall.copyWith(fontWeight: FontWeight.w600),
                         ),
-                        const SizedBox(height: 2),
                         Text(
-                          '${item.transactionCount} transaksi',
-                          style: AppTypography.caption1.copyWith(
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          isNetPositive ? 'Arus Kas +' : 'Arus Kas -',
+                          style: AppTypography.caption2.copyWith(
+                            color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              'Masuk: +${CurrencyFormatter.formatRupiah(item.incomeAmount + item.transferInAmount)}',
-                              style: AppTypography.caption2.copyWith(
-                                color: isDark ? AppColors.primaryLight : AppColors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Keluar: -${CurrencyFormatter.formatRupiah(item.expenseAmount + item.transferOutAmount)}',
-                              style: AppTypography.caption2.copyWith(
-                                color: isDark ? AppColors.errorLight : AppColors.error,
-                              ),
-                            ),
-                          ],
                         ),
                       ],
                     ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        isNetPositive ? 'Arus Kas +' : 'Arus Kas -',
-                        style: AppTypography.caption2.copyWith(
-                          color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${isNetPositive ? "+" : ""}${CurrencyFormatter.formatRupiah(item.netFlow)}',
-                        style: AppTypography.subhead.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: isNetPositive
-                              ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                              : (isDark ? AppColors.errorLight : AppColors.error),
-                        ),
-                      ),
-                      if (onWalletTap != null)
-                        const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
+            if (idx < items.length - 1)
+              Divider(
+                height: 1,
+                thickness: 0.6,
+                indent: 52,
+                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+              ),
+          ],
         );
       }).toList(),
     );

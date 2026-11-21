@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 import '../../../../app/app_providers.dart';
-import '../../../../core/utils/file_export_helper.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/app_haptics.dart';
+import '../../../../core/utils/file_export_helper.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 
+/// Bottom Sheet untuk Ekspor Laporan Keuangan (PDF / CSV) — MyFinance Minimal.
 class ExportSheet extends ConsumerStatefulWidget {
   final String monthKey;
 
@@ -18,6 +21,7 @@ class ExportSheet extends ConsumerStatefulWidget {
   });
 
   static Future<void> show(BuildContext context, String monthKey) {
+    AppHaptics.selection();
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -128,7 +132,7 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: SafeArea(
@@ -142,12 +146,12 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                  color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             Text(
               'Ekspor Laporan Keuangan',
               style: AppTypography.title2.copyWith(fontWeight: FontWeight.w700),
@@ -155,7 +159,7 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
             const SizedBox(height: 4),
             Text(
               'Pilih format dokumen laporan untuk periode ${widget.monthKey}',
-              style: AppTypography.caption1.copyWith(
+              style: AppTypography.caption.copyWith(
                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
               ),
             ),
@@ -169,17 +173,17 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
               )
             else ...[
               _buildOptionTile(
-                icon: Icons.picture_as_pdf_rounded,
-                iconColor: Colors.red.shade600,
-                title: 'Dokumen PDF Cetak',
+                icon: Icons.picture_as_pdf_outlined,
+                iconColor: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                title: 'Dokumen PDF Resmi',
                 subtitle: 'Tata letak Apple-styled resmi dengan kartu KPI & rincian mutasi',
                 onTap: _exportPdf,
                 isDark: isDark,
               ),
               const SizedBox(height: 12),
               _buildOptionTile(
-                icon: Icons.table_chart_rounded,
-                iconColor: Colors.green.shade600,
+                icon: Icons.table_chart_outlined,
+                iconColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
                 title: 'Berkas Data CSV (Excel / Numbers)',
                 subtitle: 'Format tabular standar RFC 4180 dengan encoding UTF-8 BOM',
                 onTap: _exportCsv,
@@ -202,13 +206,16 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
     required bool isDark,
   }) {
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      onTap: () {
+        AppHaptics.light();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceCardDark : AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(14),
+          color: isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceLight,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isDark ? AppColors.borderDark : AppColors.borderLight,
             width: 0.8,
@@ -217,13 +224,17 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.12),
+                color: iconColor.withValues(alpha: isDark ? 0.2 : 0.12),
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: iconColor.withValues(alpha: isDark ? 0.4 : 0.25),
+                  width: 0.8,
+                ),
               ),
-              child: Icon(icon, color: iconColor, size: 24),
+              child: Icon(icon, color: isDark ? Colors.white : iconColor, size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -232,13 +243,14 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
                 children: [
                   Text(
                     title,
-                    style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
+                    style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: AppTypography.caption1.copyWith(
+                    style: AppTypography.caption.copyWith(
                       color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      fontSize: 12,
                     ),
                   ),
                 ],
