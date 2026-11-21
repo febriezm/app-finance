@@ -55,7 +55,7 @@ class WalletsScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (sheetContext) => Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
         decoration: BoxDecoration(
           color: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
@@ -309,7 +309,7 @@ class WalletsScreen extends ConsumerWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () {
-                        Navigator.of(context).pop();
+                        Navigator.of(sheetContext).pop();
                         _showEditWalletSheet(context, item.wallet);
                       },
                     ),
@@ -689,6 +689,8 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
 
   final List<String> _colors = const [
     '0xFF0E7A4A', // Emerald
+    '0xFF2ED573', // Mint
+    '0xFF10AC84', // Teal
     '0xFF0984E3', // Blue
     '0xFF9B59B6', // Purple
     '0xFFE67E22', // Orange
@@ -1074,14 +1076,7 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
   bool _isLoading = false;
   String? _nameError;
 
-  final List<String> _colors = const [
-    '0xFF0E7A4A', // Emerald
-    '0xFF0984E3', // Blue
-    '0xFF9B59B6', // Purple
-    '0xFFE67E22', // Orange
-    '0xFFD63031', // Crimson
-    '0xFF2C3E50', // Navy
-  ];
+  late final List<String> _colors;
 
   @override
   void initState() {
@@ -1090,6 +1085,23 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
     _selectedType = widget.wallet.type;
     _selectedColorHex = widget.wallet.colorHex ?? '0xFF0E7A4A';
     _selectedIconKey = widget.wallet.iconKey ?? 'wallet';
+
+    const defaultColors = [
+      '0xFF0E7A4A', // Emerald
+      '0xFF2ED573', // Mint
+      '0xFF10AC84', // Teal
+      '0xFF0984E3', // Blue
+      '0xFF9B59B6', // Purple
+      '0xFFE67E22', // Orange
+      '0xFFD63031', // Crimson
+      '0xFF2C3E50', // Navy
+    ];
+
+    if (!defaultColors.contains(_selectedColorHex)) {
+      _colors = [_selectedColorHex, ...defaultColors];
+    } else {
+      _colors = defaultColors;
+    }
   }
 
   @override
@@ -1340,6 +1352,57 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                         ),
                       );
                     }).toList(),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Saldo Awal (Aturan MyFinance: Ditampilkan terformat sesuai integritas buku kas)
+                  Text(
+                    'SALDO AWAL',
+                    style: AppTypography.caption1.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: surfaceElevated,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: borderColor, width: 0.8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          CurrencyFormatter.formatRupiah(widget.wallet.openingBalance),
+                          style: AppTypography.title3.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: borderColor, width: 0.6),
+                          ),
+                          child: Text(
+                            'Tersimpan',
+                            style: AppTypography.caption2.copyWith(color: textSecondary, fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Saldo awal dikunci untuk menjaga konsistensi kalkulasi mutasi transaksi.',
+                    style: AppTypography.caption2.copyWith(color: textSecondary, fontSize: 11),
                   ),
 
                   const SizedBox(height: 20),

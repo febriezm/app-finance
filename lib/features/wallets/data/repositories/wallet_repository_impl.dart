@@ -150,6 +150,7 @@ class WalletRepositoryImpl implements WalletRepository {
         iconKey: Value(wallet.iconKey),
         colorHex: Value(wallet.colorHex),
         isArchived: Value(wallet.isArchived),
+        createdAt: Value(wallet.createdAt),
         updatedAt: Value(DateTime.now().toUtc().toIso8601String()),
       ),
     );
