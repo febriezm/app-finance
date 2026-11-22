@@ -22,8 +22,15 @@ import '../../domain/entities/wallet.dart';
 /// - Daftar dompet terkelompok (Grouped List): Rekening Bank, Kas Tunai, E-Wallet, Lainnya.
 /// - Setiap akun menggunakan [WalletListTile] dengan icon sederhana, typography bersih, angka tabular, dan divider tipis.
 /// - Mempertahankan seluruh fitur: Tambah, Edit, Detail, Arsip/Aktifkan, Riwayat Mutasi, dan Transfer.
-class WalletsScreen extends ConsumerWidget {
+class WalletsScreen extends ConsumerStatefulWidget {
   const WalletsScreen({super.key});
+
+  @override
+  ConsumerState<WalletsScreen> createState() => _WalletsScreenState();
+}
+
+class _WalletsScreenState extends ConsumerState<WalletsScreen> {
+  bool _isBalanceVisible = true;
 
   void _showAddWalletSheet(BuildContext context) {
     unawaited(AppHaptics.selection());
@@ -389,14 +396,273 @@ class WalletsScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildDedicatedAssetCard(
+    BuildContext context, {
+    required int totalBalance,
+    required List<WalletWithBalance> wallets,
+    required List<WalletWithBalance> archivedWallets,
+    required List<WalletWithBalance> bankWallets,
+    required List<WalletWithBalance> cashWallets,
+    required List<WalletWithBalance> eWalletWallets,
+    required List<WalletWithBalance> otherWallets,
+    required bool isDark,
+    required Color surfaceColor,
+    required Color borderColor,
+  }) {
+    final dividerColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
+    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textTertiary = isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight;
+
+    final bankAndCashTotal = (bankWallets + cashWallets).fold<int>(0, (sum, w) => sum + w.currentBalance);
+    final eWalletAndOtherTotal = (eWalletWallets + otherWallets).fold<int>(0, (sum, w) => sum + w.currentBalance);
+
+    final walletCountLabel = archivedWallets.isNotEmpty
+        ? '${wallets.length} Aktif • ${archivedWallets.length} Arsip'
+        : '${wallets.length} Dompet Aktif';
+
+    return Container(
+      key: const Key('dedicated_asset_balance_card'),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 0.8),
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Header: Label + Visibility Toggle + Wallets Glance
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'TOTAL SALDO ASET',
+                        style: AppTypography.caption.copyWith(
+                          color: textSecondary,
+                          letterSpacing: 0.8,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: () {
+                        AppHaptics.light();
+                        setState(() {
+                          _isBalanceVisible = !_isBalanceVisible;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          _isBalanceVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          size: 16,
+                          color: textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                walletCountLabel,
+                style: AppTypography.caption2.copyWith(
+                  color: textTertiary,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // 2. Hero Balance Amount (Focal Point Utama)
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: _isBalanceVisible
+                ? FinanceAmountText(
+                    amount: totalBalance,
+                    type: AmountDisplayType.neutral,
+                    style: AppTypography.balanceLarge.copyWith(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.8,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  )
+                : Text(
+                    'Rp ••••••••',
+                    style: AppTypography.balanceLarge.copyWith(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.8,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 3. Hairline Divider
+          Divider(height: 0.8, thickness: 0.8, color: dividerColor),
+
+          const SizedBox(height: 14),
+
+          // 4. Compact Asset Breakdown
+          Row(
+            children: [
+              // Kas & Bank
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Kas & Bank',
+                            style: AppTypography.caption2.copyWith(
+                              color: textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _isBalanceVisible
+                          ? FinanceAmountText(
+                              amount: bankAndCashTotal,
+                              type: AmountDisplayType.neutral,
+                              showPlusSign: false,
+                              style: AppTypography.bodyBold.copyWith(
+                                fontSize: 14,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            )
+                          : Text(
+                              'Rp ••••••',
+                              style: AppTypography.bodyBold.copyWith(
+                                fontSize: 14,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Vertical subtle separator
+              const SizedBox(width: 10),
+              Container(
+                height: 28,
+                width: 0.8,
+                color: dividerColor,
+              ),
+              const SizedBox(width: 10),
+
+              // E-Wallet & Lainnya
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark ? AppColors.transferDark : AppColors.transferLight,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'E-Wallet & Lainnya',
+                            style: AppTypography.caption2.copyWith(
+                              color: textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _isBalanceVisible
+                          ? FinanceAmountText(
+                              amount: eWalletAndOtherTotal,
+                              type: AmountDisplayType.neutral,
+                              showPlusSign: false,
+                              style: AppTypography.bodyBold.copyWith(
+                                fontSize: 14,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            )
+                          : Text(
+                              'Rp ••••••',
+                              style: AppTypography.bodyBold.copyWith(
+                                fontSize: 14,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final walletsAsync = ref.watch(walletsWithBalanceStreamProvider);
     final archivedWalletsAsync = ref.watch(archivedWalletsWithBalanceStreamProvider);
     final totalBalance = ref.watch(totalAllAssetBalanceProvider);
 
     final archivedWallets = archivedWalletsAsync.asData?.value ?? [];
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -437,39 +703,24 @@ class WalletsScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
             children: [
-              // 1. Total Balance Minimalis (Quiet, Clean, Typography-First)
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'TOTAL SALDO ASET',
-                    style: AppTypography.caption.copyWith(
-                      color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                      letterSpacing: 0.8,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    archivedWallets.isNotEmpty
-                        ? '${wallets.length} aktif • ${archivedWallets.length} arsip'
-                        : '${wallets.length} dompet aktif',
-                    style: AppTypography.caption.copyWith(
-                      color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              FinanceAmountText(
-                amount: totalBalance,
-                type: AmountDisplayType.neutral,
-                style: AppTypography.balanceLarge,
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              const SizedBox(height: 4),
+
+              // 1. Dedicated Asset Balance Card (Focal Point Utama — MyFinance Minimal)
+              _buildDedicatedAssetCard(
+                context,
+                totalBalance: totalBalance,
+                wallets: wallets,
+                archivedWallets: archivedWallets,
+                bankWallets: bankWallets,
+                cashWallets: cashWallets,
+                eWalletWallets: eWalletWallets,
+                otherWallets: otherWallets,
+                isDark: isDark,
+                surfaceColor: surfaceColor,
+                borderColor: borderColor,
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // Quick Actions Bar (Transfer & Tambah Dompet)
               Row(

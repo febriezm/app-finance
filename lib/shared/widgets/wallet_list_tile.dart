@@ -83,6 +83,8 @@ class WalletListTile extends StatelessWidget {
                         style: AppTypography.caption.copyWith(
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -93,29 +95,38 @@ class WalletListTile extends StatelessWidget {
                 if (trailing != null)
                   trailing!
                 else
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        CurrencyFormatter.formatRupiah(currentBalance),
-                        style: AppTypography.balanceSmall.copyWith(
-                          color: currentBalance >= 0
-                              ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
-                              : (isDark ? AppColors.expenseDark : AppColors.expenseLight),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (wallet.isArchived)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
                           child: Text(
-                            'Diarsipkan',
-                            style: AppTypography.caption2.copyWith(
-                              color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
+                            CurrencyFormatter.formatRupiah(currentBalance),
+                            style: AppTypography.balanceSmall.copyWith(
+                              color: currentBalance >= 0
+                                  ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
+                                  : (isDark ? AppColors.expenseDark : AppColors.expenseLight),
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
-                    ],
+                        if (wallet.isArchived)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              'Diarsipkan',
+                              style: AppTypography.caption2.copyWith(
+                                color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
               ],
             ),

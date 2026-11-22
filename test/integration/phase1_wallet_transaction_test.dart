@@ -59,7 +59,7 @@ void main() {
     expect(find.text('Rp 1.000.000'), findsWidgets);
 
     // 6. Tap quick action "Pengeluaran"
-    await tester.tap(find.text('Pengeluaran').first);
+    await tester.tap(find.widgetWithText(InkWell, 'Pengeluaran'));
     await tester.pumpAndSettle();
 
     expect(find.text('Catat Transaksi'), findsOneWidget);
