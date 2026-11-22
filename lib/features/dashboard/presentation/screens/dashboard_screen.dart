@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/app_haptics.dart';
+import '../../../../core/utils/greeting_helper.dart';
 import '../../../../shared/widgets/shared_widgets.dart';
 import '../../../budgets/domain/entities/budget.dart';
 import '../../../transactions/domain/entities/transaction.dart';
@@ -24,19 +26,53 @@ import '../../../wallets/domain/entities/wallet.dart';
 /// - Whitespace sebagai pemisah utama (tanpa card & shadow berlebihan).
 /// - Warna fungsional terbatas (hijau income, merah expense, netral untuk saldo).
 /// - Quick action pills yang tenang dan ramah sentuhan (touch target >= 44pt).
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 11) return 'Selamat pagi';
-    if (hour < 15) return 'Selamat siang';
-    if (hour < 18) return 'Selamat sore';
-    return 'Selamat malam';
+  @override
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsBindingObserver {
+  Timer? _greetingRefreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleGreetingRefresh();
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void dispose() {
+    _greetingRefreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (mounted) {
+        setState(() {});
+        _scheduleGreetingRefresh();
+      }
+    }
+  }
+
+  void _scheduleGreetingRefresh() {
+    _greetingRefreshTimer?.cancel();
+    final duration = GreetingHelper.durationUntilNextPeriod();
+    _greetingRefreshTimer = Timer(duration, () {
+      if (mounted) {
+        setState(() {});
+        _scheduleGreetingRefresh();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final totalBalance = ref.watch(netOperationalBalanceProvider);
     final walletsAsync = ref.watch(walletsWithBalanceStreamProvider);
@@ -109,7 +145,7 @@ class DashboardScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${_getGreeting()},',
+                        '${GreetingHelper.getGreeting()},',
                         style: AppTypography.caption.copyWith(
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                           letterSpacing: 0.1,

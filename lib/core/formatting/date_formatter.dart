@@ -97,6 +97,21 @@ class AppDateFormatter {
   static String toUtcIsoString(DateTime dateTime) {
     return dateTime.toUtc().toIso8601String();
   }
+
+  /// Menghasilkan teks salam dinamis (Selamat pagi/siang/sore/malam) berdasarkan waktu lokal.
+  static String getGreeting([DateTime? dateTime]) {
+    final localTime = (dateTime ?? DateTime.now()).toLocal();
+    final hour = localTime.hour;
+    if (hour >= 4 && hour < 11) {
+      return 'Selamat pagi';
+    } else if (hour >= 11 && hour < 15) {
+      return 'Selamat siang';
+    } else if (hour >= 15 && hour < 19) {
+      return 'Selamat sore';
+    } else {
+      return 'Selamat malam';
+    }
+  }
 }
 
 typedef DateFormatter = AppDateFormatter;
