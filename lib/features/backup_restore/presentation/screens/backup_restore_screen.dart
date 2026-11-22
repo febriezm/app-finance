@@ -1,12 +1,24 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/app_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/app_haptics.dart';
 import '../../../../core/utils/file_picker_helper.dart';
 import '../../../../shared/widgets/shared_widgets.dart';
 
+/// Halaman Cadangkan & Pulihkan (Backup & Restore)
+/// Desain: MyFinance Minimal — Quiet, Clean, Premium.
+///
+/// Fitur:
+/// - Informasi privasi & penyimpanan lokal 100% offline.
+/// - Cadangkan seluruh data menjadi arsip JSON terstruktur & bagikan/unduh.
+/// - Opsi salin teks JSON cadangan ke clipboard.
+/// - Pulihkan data via berkas JSON dengan validasi schema & integritas.
+/// - Dukungan tempel teks cadangan (paste) dari clipboard atau manual.
+/// - Zona Berbahaya terpisah untuk reset seluruh data aplikasi dengan konfirmasi ketik "RESET".
 class BackupRestoreScreen extends ConsumerStatefulWidget {
   const BackupRestoreScreen({super.key});
 
@@ -34,7 +46,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     super.dispose();
   }
 
-  void _pickJsonFile() async {
+  Future<void> _pickJsonFile() async {
+    unawaited(AppHaptics.selection());
     final messenger = ScaffoldMessenger.of(context);
     try {
       final content = await FilePickerHelper.pickJsonFile();
@@ -51,7 +64,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     }
   }
 
-  void _pasteFromClipboard() async {
+  Future<void> _pasteFromClipboard() async {
+    unawaited(AppHaptics.selection());
     String? text;
     try {
       final data = await Clipboard.getData('text/plain');
@@ -76,8 +90,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       }
     }
 
-    // Jika clipboard dibatasi oleh browser (misal Safari iOS pada HTTP) atau belum valid,
-    // buka lembar input teks langsung agar pengguna dapat menempelkan (paste) secara manual.
+    // Jika clipboard dibatasi oleh browser atau belum valid,
+    // buka lembar input teks langsung agar pengguna dapat menempelkan secara manual.
     if (mounted) {
       _showManualPasteModal(context);
     }
@@ -85,165 +99,186 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
   void _showManualPasteModal(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final bgField = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (sheetCtx) {
         return StatefulBuilder(
           builder: (modalCtx, setModalState) {
-            return Padding(
+            return Container(
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                border: Border.all(color: borderColor, width: 0.8),
+              ),
               padding: EdgeInsets.only(
                 left: 20,
                 right: 20,
-                top: 12,
-                bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 20,
+                top: 14,
+                bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Tempel Teks Cadangan',
-                        style: AppTypography.headline.copyWith(fontSize: 17),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 20),
-                        splashRadius: 20,
-                        onPressed: () => Navigator.pop(sheetCtx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Safari iOS membatasi pembacaan otomatis papan klip pada jaringan HTTP lokal. Ketuk kolom teks di bawah lalu pilih opsi "Tempel" (Paste):',
-                    style: AppTypography.caption1.copyWith(
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _jsonInputController,
-                    maxLines: 7,
-                    autofocus: true,
-                    style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-                    decoration: InputDecoration(
-                      hintText: 'Ketuk di sini, lalu pilih "Tempel" / "Paste"...',
-                      hintStyle: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                      ),
-                      filled: true,
-                      fillColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white24 : Colors.black12,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      contentPadding: const EdgeInsets.all(12),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Tempel Teks Cadangan',
+                          style: AppTypography.title2.copyWith(fontSize: 18),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20),
+                          splashRadius: 20,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          onPressed: () => Navigator.pop(sheetCtx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Ketuk kolom teks di bawah lalu pilih opsi "Tempel" (Paste) untuk memuat data cadangan JSON:',
+                      style: AppTypography.caption.copyWith(
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: _jsonInputController,
+                      maxLines: 7,
+                      autofocus: true,
+                      style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                      decoration: InputDecoration(
+                        hintText: 'Ketuk di sini, lalu pilih "Tempel" / "Paste"...',
+                        hintStyle: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
+                        ),
+                        filled: true,
+                        fillColor: bgField,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderColor, width: 0.8),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderColor, width: 0.8),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            width: 1.2,
                           ),
-                          icon: const Icon(Icons.paste_rounded, size: 18),
-                          label: const Text('Tempel Otomatis'),
-                          onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            try {
-                              final data = await Clipboard.getData('text/plain');
-                              final t = data?.text?.trim();
-                              if (t != null && t.isNotEmpty) {
-                                setModalState(() {
-                                  _jsonInputController.text = t;
-                                });
-                              } else {
+                        ),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: borderColor, width: 0.8),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: const Icon(Icons.paste_rounded, size: 18),
+                            label: const Text('Tempel Otomatis'),
+                            onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              try {
+                                final data = await Clipboard.getData('text/plain');
+                                final t = data?.text?.trim();
+                                if (t != null && t.isNotEmpty) {
+                                  setModalState(() {
+                                    _jsonInputController.text = t;
+                                  });
+                                } else {
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Papan klip dibatasi browser. Silakan ketuk kolom teks dan pilih "Tempel".'),
+                                      duration: Duration(seconds: 3),
+                                    ),
+                                  );
+                                }
+                              } catch (_) {
                                 messenger.showSnackBar(
                                   const SnackBar(
-                                    content: Text('Papan klip dibatasi browser. Silakan ketuk kolom teks dan pilih "Tempel".'),
+                                    content: Text('Akses otomatis dibatasi browser. Ketuk kolom teks dan pilih "Tempel".'),
                                     duration: Duration(seconds: 3),
                                   ),
                                 );
                               }
-                            } catch (_) {
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Akses otomatis dibatasi Safari iOS. Ketuk kolom teks dan pilih "Tempel".'),
-                                  duration: Duration(seconds: 3),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            },
                           ),
-                          icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-                          label: const Text('Periksa & Muat'),
-                          onPressed: () {
-                            final raw = _jsonInputController.text.trim();
-                            if (raw.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Kolom teks masih kosong. Silakan tempel teks cadangan.')),
-                              );
-                              return;
-                            }
-                            Navigator.pop(sheetCtx);
-                            final res = ref.read(backupRestoreControllerProvider.notifier).validateJson(raw);
-                            if (mounted) {
-                              if (res.isValid) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Arsip cadangan valid dan siap dipulihkan.'),
-                                    duration: Duration(seconds: 3),
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(res.errorMessage ?? 'Format cadangan tidak valid.'),
-                                    duration: const Duration(seconds: 4),
-                                  ),
-                                );
-                              }
-                            }
-                          },
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              foregroundColor: isDark ? AppColors.backgroundDark : Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                            label: const Text('Periksa & Muat'),
+                            onPressed: () {
+                              final raw = _jsonInputController.text.trim();
+                              if (raw.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Kolom teks masih kosong. Silakan tempel teks cadangan.')),
+                                );
+                                return;
+                              }
+                              Navigator.pop(sheetCtx);
+                              final res = ref.read(backupRestoreControllerProvider.notifier).validateJson(raw);
+                              if (mounted) {
+                                if (res.isValid) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Arsip cadangan valid dan siap dipulihkan.'),
+                                      duration: Duration(seconds: 3),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(res.errorMessage ?? 'Format cadangan tidak valid.'),
+                                      duration: const Duration(seconds: 4),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -253,10 +288,11 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
   }
 
   Future<void> _confirmRestore(BuildContext context, int recordsCount) async {
+    unawaited(AppHaptics.selection());
     final messenger = ScaffoldMessenger.of(context);
     final confirm = await MinimalDialog.showConfirm(
       context,
-      title: 'Konfirmasi Pemulihan',
+      title: 'Pulihkan Data Cadangan?',
       message:
           'Aplikasi akan mengganti seluruh data yang ada saat ini dengan data dari cadangan ($recordsCount data).\n\nPastikan Anda telah mencadangkan data saat ini bila diperlukan.',
       confirmText: 'Pulihkan Data',
@@ -272,15 +308,19 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         _jsonInputController.clear();
         ref.read(backupRestoreControllerProvider.notifier).clearValidation();
         messenger.showSnackBar(
-          const SnackBar(content: Text('Data berhasil dipulihkan!')),
+          const SnackBar(content: Text('Data berhasil dipulihkan dengan sempurna!')),
         );
       }
     }
   }
 
   void _confirmReset(BuildContext context) {
+    unawaited(AppHaptics.selection());
     final resetConfirmController = TextEditingController();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final expenseColor = isDark ? AppColors.expenseDark : AppColors.expenseLight;
 
     showDialog(
       context: context,
@@ -289,24 +329,24 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           final isConfirmed = resetConfirmController.text.trim().toUpperCase() == 'RESET';
 
           return AlertDialog(
-            backgroundColor: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
+            backgroundColor: surfaceColor,
+            elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                width: 0.8,
-              ),
+              side: BorderSide(color: borderColor, width: 0.8),
             ),
-            titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            actionsPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            title: Text(
-              'Hapus Seluruh Data?',
-              style: AppTypography.title3.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 17,
-                letterSpacing: -0.3,
-              ),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            title: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: expenseColor, size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  'Hapus Seluruh Data?',
+                  style: AppTypography.title2.copyWith(fontSize: 18),
+                ),
+              ],
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -314,41 +354,37 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
               children: [
                 Text(
                   'Tindakan ini akan menghapus permanen seluruh transaksi, riwayat mutasi, dompet, dan anggaran di perangkat ini.\n\nKetik kata "RESET" di bawah ini untuk mengonfirmasi:',
-                  style: TextStyle(
-                    color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                  style: AppTypography.caption.copyWith(
                     fontSize: 13,
-                    height: 1.4,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    height: 1.45,
                   ),
                 ),
                 const SizedBox(height: 14),
                 TextField(
                   controller: resetConfirmController,
-                  style: AppTypography.bodyBold,
+                  style: AppTypography.bodyBold.copyWith(letterSpacing: 1.2),
+                  textCapitalization: TextCapitalization.characters,
                   decoration: InputDecoration(
                     hintText: 'Ketik RESET',
+                    hintStyle: TextStyle(
+                      letterSpacing: 0,
+                      color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
+                    ),
                     filled: true,
-                    fillColor: isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceElevatedLight,
+                    fillColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                        width: 0.8,
-                      ),
+                      borderSide: BorderSide(color: borderColor, width: 0.8),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                        width: 0.8,
-                      ),
+                      borderSide: BorderSide(color: borderColor, width: 0.8),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
-                        width: 1.2,
-                      ),
+                      borderSide: BorderSide(color: expenseColor, width: 1.2),
                     ),
                   ),
                   onChanged: (_) => setDialogState(() {}),
@@ -361,13 +397,15 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                   foregroundColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                 ),
                 onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('Batal', style: TextStyle(fontSize: 14)),
+                child: const Text('Batal'),
               ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: isConfirmed
-                      ? (isDark ? AppColors.expenseDark : AppColors.expenseLight)
-                      : (isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isConfirmed ? expenseColor : (isDark ? Colors.white10 : Colors.black12),
+                  foregroundColor: isConfirmed ? Colors.white : (isDark ? Colors.white30 : Colors.black26),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
                 onPressed: isConfirmed
                     ? () async {
@@ -378,14 +416,14 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                             .resetAllData();
                         if (success && mounted) {
                           messenger.showSnackBar(
-                            const SnackBar(content: Text('Basis data berhasil direset.')),
+                            const SnackBar(content: Text('Seluruh basis data berhasil direset.')),
                           );
                         }
                       }
                     : null,
                 child: const Text(
                   'Hapus Semua Data',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -399,10 +437,19 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final state = ref.watch(backupRestoreControllerProvider);
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final bgScaffold = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final incomeColor = isDark ? AppColors.incomeDark : AppColors.incomeLight;
+    final expenseColor = isDark ? AppColors.expenseDark : AppColors.expenseLight;
 
     return Scaffold(
+      backgroundColor: bgScaffold,
       appBar: AppBar(
         title: const Text('Cadangkan & Pulihkan'),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: bgScaffold,
       ),
       body: state.isLoading
           ? Center(
@@ -411,38 +458,43 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
               ),
             )
           : ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 36),
               children: [
-                // 1. Info Banner
-                AppCard(
+                // 1. Informasi Penyimpanan Lokal & Privasi (Flat Minimalis)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor, width: 0.8),
+                  ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.shield_outlined,
-                          color: AppColors.primary,
-                          size: 24,
-                        ),
+                      Icon(
+                        Icons.shield_outlined,
+                        size: 20,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Penyimpanan Lokal & Privat',
-                              style: AppTypography.subhead.copyWith(fontWeight: FontWeight.w700),
+                              style: AppTypography.caption.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 3),
                             Text(
-                              'Berkas cadangan berupa arsip terstruktur yang dapat disimpan di iCloud, Drive lokal, atau dipindahkan antar perangkat.',
-                              style: AppTypography.caption1.copyWith(
+                              'Data transaksi dan dompet tersimpan 100% offline di perangkat Anda. Berkas cadangan berupa arsip JSON terstruktur yang aman dan dapat dipindahkan antar perangkat.',
+                              style: AppTypography.caption.copyWith(
                                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                height: 1.4,
                               ),
                             ),
                           ],
@@ -454,82 +506,96 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
                 const SizedBox(height: 16),
 
-                // Status Message Banners
-                if (state.errorMessage != null)
+                // Feedback Banner: Error Message (Hening)
+                if (state.errorMessage != null) ...[
                   Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.12),
+                      color: expenseColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.error, width: 0.8),
+                      border: Border.all(color: expenseColor.withValues(alpha: 0.3), width: 0.8),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 20),
-                        const SizedBox(width: 8),
+                        Icon(Icons.error_outline_rounded, color: expenseColor, size: 18),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             state.errorMessage!,
-                            style: AppTypography.caption1.copyWith(color: AppColors.error),
+                            style: AppTypography.caption.copyWith(color: expenseColor),
                           ),
                         ),
                       ],
                     ),
                   ),
+                ],
 
-                if (state.successMessage != null)
+                // Feedback Banner: Success Message (Hening)
+                if (state.successMessage != null) ...[
                   Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.12),
+                      color: incomeColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.primary, width: 0.8),
+                      border: Border.all(color: incomeColor.withValues(alpha: 0.3), width: 0.8),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle_outline_rounded, color: AppColors.primary, size: 20),
-                        const SizedBox(width: 8),
+                        Icon(Icons.check_circle_outline_rounded, color: incomeColor, size: 18),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             state.successMessage!,
-                            style: AppTypography.caption1.copyWith(color: AppColors.primary),
+                            style: AppTypography.caption.copyWith(color: incomeColor),
                           ),
                         ),
                       ],
                     ),
                   ),
+                ],
 
-                // 2. Section: Buat Cadangan (Backup)
-                Text(
-                  'Cadangkan Data (Backup)',
-                  style: AppTypography.headline.copyWith(fontSize: 16),
+                // 2. Section: Cadangkan Data (Backup)
+                const MinimalSectionHeader(
+                  title: 'Cadangkan Data',
+                  padding: EdgeInsets.only(top: 8, bottom: 8),
                 ),
-                const SizedBox(height: 8),
-                AppCard(
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: borderColor, width: 0.8),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Simpan seluruh basis data MyFinance ke dalam berkas cadangan JSON yang valid dan tervalidasi.',
-                        style: AppTypography.caption1.copyWith(
+                        'Simpan seluruh basis data MyFinance ke dalam berkas cadangan JSON yang valid.',
+                        style: AppTypography.caption.copyWith(
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            backgroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            foregroundColor: isDark ? AppColors.backgroundDark : Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          icon: const Icon(Icons.download_rounded),
-                          label: const Text('Buat & Bagikan Cadangan (JSON)'),
+                          icon: const Icon(Icons.download_rounded, size: 19),
+                          label: const Text(
+                            'Buat & Bagikan Cadangan (JSON)',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                           onPressed: () {
+                            unawaited(AppHaptics.selection());
                             ref
                                 .read(backupRestoreControllerProvider.notifier)
                                 .createAndShareBackup();
@@ -542,15 +608,27 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                           width: double.infinity,
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              side: BorderSide(color: borderColor, width: 0.8),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            icon: const Icon(Icons.copy_rounded, size: 18),
-                            label: const Text('Salin Teks JSON Cadangan'),
+                            icon: Icon(
+                              Icons.copy_rounded,
+                              size: 17,
+                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            ),
+                            label: Text(
+                              'Salin Teks JSON Cadangan',
+                              style: TextStyle(
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                             onPressed: () {
+                              unawaited(AppHaptics.light());
                               Clipboard.setData(ClipboardData(text: state.latestBackupJson!));
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Teks JSON cadangan berhasil disalin ke clipboard!')),
+                                const SnackBar(content: Text('Teks JSON cadangan berhasil disalin ke papan klip!')),
                               );
                             },
                           ),
@@ -563,69 +641,86 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                 const SizedBox(height: 24),
 
                 // 3. Section: Pulihkan Data (Restore)
-                Text(
-                  'Pulihkan Data (Restore)',
-                  style: AppTypography.headline.copyWith(fontSize: 16),
+                const MinimalSectionHeader(
+                  title: 'Pulihkan Data',
+                  padding: EdgeInsets.only(top: 4, bottom: 8),
                 ),
-                const SizedBox(height: 8),
-                AppCard(
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: borderColor, width: 0.8),
+                  ),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Pulihkan data dari berkas cadangan JSON yang valid untuk mengembalikan seluruh mutasi dan dompet Anda.',
-                        style: AppTypography.caption1.copyWith(
+                        style: AppTypography.caption.copyWith(
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            side: BorderSide(color: borderColor, width: 0.8),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          icon: const Icon(Icons.file_open_outlined, size: 20),
-                          label: const Text('Pilih Berkas Cadangan (.json)'),
+                          icon: Icon(
+                            Icons.file_open_outlined,
+                            size: 19,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          ),
+                          label: Text(
+                            'Pilih Berkas Cadangan (.json)',
+                            style: TextStyle(
+                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           onPressed: _pickJsonFile,
                         ),
                       ),
+
+                      // Status Hasil Validasi Arsip Cadangan
                       if (state.validationResult != null) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                         if (state.validationResult!.isValid) ...[
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppColors.primary, width: 0.8),
+                              color: incomeColor.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: incomeColor.withValues(alpha: 0.3), width: 0.8),
                             ),
                             child: Column(
-                              mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
-                                    const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 18),
-                                    const SizedBox(width: 6),
+                                    Icon(Icons.check_circle_outline_rounded, color: incomeColor, size: 18),
+                                    const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         'Arsip Valid (v${state.validationResult!.schemaVersion}) • ${state.validationResult!.totalRecordsCount} data',
-                                        style: AppTypography.caption1.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.primary,
+                                        style: AppTypography.caption.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: incomeColor,
                                         ),
                                       ),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.close_rounded, size: 20),
+                                      icon: const Icon(Icons.close_rounded, size: 18),
                                       color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                                       tooltip: 'Batalkan / Hapus',
-                                      splashRadius: 20,
+                                      splashRadius: 18,
                                       padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                                       onPressed: () {
                                         setState(() {
                                           _jsonInputController.clear();
@@ -635,7 +730,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 8),
                                 Text(
                                   '${state.validationResult!.walletsCount} Dompet • ${state.validationResult!.categoriesCount} Kategori • ${state.validationResult!.transactionsCount} Transaksi • ${state.validationResult!.budgetsCount} Anggaran',
                                   style: AppTypography.caption2.copyWith(
@@ -645,18 +740,22 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.accent,
+                                backgroundColor: incomeColor,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 13),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              icon: const Icon(Icons.restore_rounded),
-                              label: const Text('Terapkan Pemulihan Data'),
+                              icon: const Icon(Icons.restore_rounded, size: 19),
+                              label: const Text(
+                                'Terapkan Pemulihan Data',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
                               onPressed: () => _confirmRestore(
                                 context,
                                 state.validationResult!.totalRecordsCount,
@@ -667,27 +766,27 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.error.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppColors.error, width: 0.8),
+                              color: expenseColor.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: expenseColor.withValues(alpha: 0.3), width: 0.8),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.cancel_rounded, color: AppColors.error, size: 18),
+                                Icon(Icons.cancel_outlined, color: expenseColor, size: 18),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     state.validationResult!.errorMessage ?? 'Arsip tidak valid.',
-                                    style: AppTypography.caption1.copyWith(color: AppColors.error),
+                                    style: AppTypography.caption.copyWith(color: expenseColor),
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.close_rounded, size: 20),
-                                  color: AppColors.error,
+                                  icon: const Icon(Icons.close_rounded, size: 18),
+                                  color: expenseColor,
                                   tooltip: 'Batalkan / Hapus',
-                                  splashRadius: 20,
+                                  splashRadius: 18,
                                   padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                                   onPressed: () {
                                     setState(() {
                                       _jsonInputController.clear();
@@ -700,20 +799,23 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                           ),
                         ],
                       ] else ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Center(
                           child: TextButton.icon(
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            icon: const Icon(Icons.paste_rounded, size: 14),
+                            icon: Icon(
+                              Icons.paste_rounded,
+                              size: 14,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
                             label: Text(
                               'atau Tempel / Masukkan Teks Cadangan',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+                              style: AppTypography.caption.copyWith(
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                               ),
                             ),
                             onPressed: _pasteFromClipboard,
@@ -724,65 +826,72 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 32),
 
-                // 4. Section: Zona Bahaya (Danger Zone)
-                Text(
-                  'Zona Berbahaya',
-                  style: AppTypography.headline.copyWith(
-                    fontSize: 16,
-                    color: isDark ? AppColors.errorLight : AppColors.error,
+                // 4. Section: Zona Bahaya (Danger Zone — Hening Tanpa Card Merah Berlebihan)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'ZONA BERBAHAYA',
+                    style: AppTypography.caption2.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceCardDark : AppColors.surfaceLight,
-                    borderRadius: BorderRadius.circular(16),
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: (isDark ? AppColors.errorLight : AppColors.error).withOpacity(0.5),
-                      width: 1,
+                      color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                      width: 0.8,
                     ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Reset Seluruh Basis Data',
-                        style: AppTypography.subhead.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.errorLight : AppColors.error,
+                        'Reset Seluruh Data Aplikasi',
+                        style: AppTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: expenseColor,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Menghapus seluruh mutasi transaksi, dompet, dan anggaran di perangkat ini secara permanen.',
-                        style: AppTypography.caption1.copyWith(
+                        'Menghapus seluruh mutasi transaksi, dompet, dan anggaran di perangkat ini secara permanen. Tindakan ini tidak dapat dibatalkan.',
+                        style: AppTypography.caption.copyWith(
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: isDark ? AppColors.errorLight : AppColors.error,
+                            foregroundColor: expenseColor,
                             side: BorderSide(
-                              color: isDark ? AppColors.errorLight : AppColors.error,
+                              color: expenseColor.withValues(alpha: 0.5),
+                              width: 0.8,
                             ),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          icon: const Icon(Icons.delete_forever_rounded),
-                          label: const Text('Reset Seluruh Data Aplikasi'),
+                          icon: const Icon(Icons.delete_outline_rounded, size: 19),
+                          label: const Text(
+                            'Reset Seluruh Data Aplikasi',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                           onPressed: () => _confirmReset(context),
                         ),
                       ),
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 32),
               ],
             ),
     );
