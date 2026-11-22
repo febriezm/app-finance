@@ -276,5 +276,22 @@ void main() {
       expect(find.text('Konfirmasi & Simpan Transaksi'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('Does not display Perlu Diperiksa badge on merchant input even if isMerchantCertain is false', (tester) async {
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final draft = createSampleDraft().copyWith(isMerchantCertain: false);
+      await tester.pumpWidget(buildTestWidget(draft));
+      await tester.pumpAndSettle();
+
+      // Merchant input is rendered cleanly
+      expect(find.text('Merchant / Toko'), findsOneWidget);
+      expect(find.text('Indomaret Sudirman'), findsOneWidget);
+
+      // Verify no 'Perlu Diperiksa' badge is shown
+      expect(find.text('Perlu Diperiksa'), findsNothing);
+    });
   });
 }

@@ -662,29 +662,21 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
                       border: Border.all(color: borderColor, width: 0.8),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _merchantController,
-                            style: AppTypography.bodyMedium,
-                            decoration: InputDecoration(
-                              icon: Icon(
-                                Icons.storefront_outlined,
-                                size: 19,
-                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                              ),
-                              hintText: 'Merchant, toko, atau sumber (opsional)',
-                              border: InputBorder.none,
-                              hintStyle: AppTypography.caption.copyWith(
-                                color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
-                              ),
-                            ),
-                          ),
+                    child: TextField(
+                      controller: _merchantController,
+                      style: AppTypography.bodyMedium,
+                      decoration: InputDecoration(
+                        icon: Icon(
+                          Icons.storefront_outlined,
+                          size: 19,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                         ),
-                        if (!widget.draft.isMerchantCertain)
-                          const ConfidenceBadge(isCertain: false),
-                      ],
+                        hintText: 'Merchant, toko, atau sumber (opsional)',
+                        border: InputBorder.none,
+                        hintStyle: AppTypography.caption.copyWith(
+                          color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
                     ),
                   ),
 
