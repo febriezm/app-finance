@@ -52,7 +52,16 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: transactions,
-                builder: (context, state) => const TransactionsScreen(),
+                builder: (context, state) {
+                  DateTime? initialMonth;
+                  if (state.extra is Map && (state.extra as Map).containsKey('initialMonth')) {
+                    final val = (state.extra as Map)['initialMonth'];
+                    if (val is DateTime) initialMonth = val;
+                  } else if (state.extra is DateTime) {
+                    initialMonth = state.extra as DateTime;
+                  }
+                  return TransactionsScreen(initialMonth: initialMonth);
+                },
               ),
             ],
           ),

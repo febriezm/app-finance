@@ -187,5 +187,51 @@ Terima kasih !!!Silahkan datang kembali
       expect(item.unitPrice, equals(7700));
       expect(item.totalPrice, equals(7700));
     });
+
+    test('8. ISO date YYYY-MM-DD in gallery receipt parses year as 2026, NOT 2017', () async {
+      const isoReceiptText = '''
+SUPERMARKET HERO
+Tanggal: 2026-11-17 10:45:00
+Kasir: 02
+
+ROTI TAWAR SARI ROTI
+1 x 15,000       15,000
+
+TOTAL:          15,000
+TUNAI:          20,000
+KEMBALI:         5,000
+''';
+      final ocrResult = OcrResult.fromString(isoReceiptText);
+      final draft = await parser.parse(ocrResult);
+
+      expect(draft.occurredAt, isNotNull);
+      expect(draft.occurredAt!.year, equals(2026));
+      expect(draft.occurredAt!.month, equals(11));
+      expect(draft.occurredAt!.day, equals(17));
+      expect(draft.occurredAt!.hour, equals(10));
+      expect(draft.occurredAt!.minute, equals(45));
+      expect(draft.totalAmount, equals(15000));
+      expect(draft.isDateCertain, isTrue);
+    });
+
+    test('9. Gallery receipt with earlier month (2026/10/25) preserves month 10', () async {
+      const pastReceiptText = '''
+KAFE KENANGAN
+Date: 2026/10/25 14:10
+
+KOPI KENANGAN MANTAN
+1 x 22,000       22,000
+
+TOTAL:          22,000
+''';
+      final ocrResult = OcrResult.fromString(pastReceiptText);
+      final draft = await parser.parse(ocrResult);
+
+      expect(draft.occurredAt, isNotNull);
+      expect(draft.occurredAt!.year, equals(2026));
+      expect(draft.occurredAt!.month, equals(10));
+      expect(draft.occurredAt!.day, equals(25));
+      expect(draft.totalAmount, equals(22000));
+    });
   });
 }

@@ -15,7 +15,7 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase> with _$TransactionsD
   }
 
   /// Watch transaksi terbaru berstatus confirmed
-  Stream<List<TransactionEntry>> watchRecentTransactions({int limit = 20}) {
+  Stream<List<TransactionEntry>> watchRecentTransactions({int limit = 100}) {
     return (select(transactionsTable)
           ..where((t) => t.status.equals('confirmed'))
           ..orderBy([(t) => OrderingTerm.desc(t.occurredAt)])

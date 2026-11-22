@@ -25,17 +25,44 @@ import '../widgets/add_transaction_sheet.dart';
 /// - Pengelompokan mutasi berdasarkan tanggal (Grouping by Date).
 /// - Detail transaksi lengkap dengan pembatalan (Void).
 class TransactionsScreen extends ConsumerStatefulWidget {
-  const TransactionsScreen({super.key});
+  final DateTime? initialMonth;
+
+  const TransactionsScreen({super.key, this.initialMonth});
 
   @override
   ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
-  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   int _selectedFilterIndex = 0; // 0: Semua, 1: Pengeluaran, 2: Pemasukan, 3: Transfer
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialMonth != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(selectedTransactionMonthProvider.notifier).state =
+              DateTime(widget.initialMonth!.year, widget.initialMonth!.month, 1);
+        }
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(TransactionsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialMonth != null && widget.initialMonth != oldWidget.initialMonth) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(selectedTransactionMonthProvider.notifier).state =
+              DateTime(widget.initialMonth!.year, widget.initialMonth!.month, 1);
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -346,6 +373,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final transactionsAsync = ref.watch(recentTransactionsStreamProvider);
+    final selectedMonth = ref.watch(selectedTransactionMonthProvider);
     final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
     final bgScaffold = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
@@ -380,9 +408,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: MinimalMonthSelector(
-              currentMonth: _selectedMonth,
+              currentMonth: selectedMonth,
               onMonthChanged: (newMonth) {
-                setState(() => _selectedMonth = newMonth);
+                ref.read(selectedTransactionMonthProvider.notifier).state = newMonth;
               },
             ),
           ),
@@ -391,7 +419,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           Expanded(
             child: transactionsAsync.when(
               data: (allTransactions) {
-                final selectedMonthKey = AppDateFormatter.toMonthKey(_selectedMonth);
+                final selectedMonthKey = AppDateFormatter.toMonthKey(selectedMonth);
 
                 // Hitung total pemasukan & pengeluaran terkonfirmasi di bulan yang dipilih
                 final monthConfirmedTransactions = allTransactions.where((item) {
@@ -413,8 +441,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   final tx = item.transaction;
                   final localDt = AppDateFormatter.parseUtcToLocal(tx.occurredAt);
 
-                  // Filter bulan
-                  if (AppDateFormatter.toMonthKey(localDt) != selectedMonthKey) {
+                  // Filter bulan: jika ada pencarian teks aktif, cari lintas bulan; jika tidak, filter per bulan terpilih
+                  if (_searchQuery.trim().isEmpty && AppDateFormatter.toMonthKey(localDt) != selectedMonthKey) {
                     return false;
                   }
 
@@ -641,8 +669,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               _searchQuery.isNotEmpty
                                   ? 'Tidak ditemukan transaksi yang cocok dengan "$_searchQuery".'
                                   : _selectedFilterIndex == 0
-                                      ? 'Belum ada transaksi tercatat pada ${AppDateFormatter.formatMonthYear(_selectedMonth)}.'
-                                      : 'Tidak ada transaksi untuk filter ini pada ${AppDateFormatter.formatMonthYear(_selectedMonth)}.',
+                                      ? 'Belum ada transaksi tercatat pada ${AppDateFormatter.formatMonthYear(selectedMonth)}.'
+                                      : 'Tidak ada transaksi untuk filter ini pada ${AppDateFormatter.formatMonthYear(selectedMonth)}.',
                               textAlign: TextAlign.center,
                               style: AppTypography.caption.copyWith(
                                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,

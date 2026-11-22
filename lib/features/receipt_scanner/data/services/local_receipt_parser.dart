@@ -172,14 +172,22 @@ class LocalReceiptParser implements ReceiptUnderstandingService {
 
   /// Ekstraksi Tanggal & Waktu
   ({DateTime? dateTime, bool isCertain}) _extractDateTime(List<String> lines) {
-    // Pola tanggal: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD
-    final dateRegExp = RegExp(
-      r'(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})',
+    // 1. Pola ISO / Tahun 4 Digit di Depan: YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD
+    final isoDateRegExp = RegExp(
+      r'\b(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})\b',
     );
-    // Pola tanggal teks: 17 Nov 2026, 17 November 2026
+    // 2. Pola tanggal teks: 17 Nov 2026, 17 November 2026, 17-Nov-2026
     final dateTextRegExp = RegExp(
-      r'(\d{1,2})\s+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Ags|Sep|Okt|Nov|Des|January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{2,4})',
+      r'\b(\d{1,2})[\s\-]+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Ags|Sep|Okt|Nov|Des|January|February|March|April|May|June|July|August|September|October|November|December)[\s\-]+(\d{2,4})\b',
       caseSensitive: false,
+    );
+    // 3. Pola tanggal DMY dengan 4-digit tahun: DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
+    final dmy4RegExp = RegExp(
+      r'\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\b',
+    );
+    // 4. Pola tanggal DMY dengan 2-digit tahun: DD/MM/YY, DD-MM-YY, DD.MM.YY
+    final dmy2RegExp = RegExp(
+      r'\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2})\b',
     );
     // Pola waktu: HH:mm atau HH:mm:ss
     final timeRegExp = RegExp(r'\b([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\b');
@@ -190,6 +198,8 @@ class LocalReceiptParser implements ReceiptUnderstandingService {
     int? foundHour;
     int? foundMinute;
     int? foundSecond;
+
+    final currentYear = DateTime.now().year;
 
     for (final line in lines) {
       // 1. Cari Waktu pada baris jika belum ditemukan
@@ -206,35 +216,79 @@ class LocalReceiptParser implements ReceiptUnderstandingService {
 
       // 2. Cari Tanggal pada baris jika belum ditemukan
       if (foundDay == null) {
-        final numMatch = dateRegExp.firstMatch(line);
-        if (numMatch != null) {
-          final p1 = int.parse(numMatch.group(1)!);
-          final p2 = int.parse(numMatch.group(2)!);
-          int p3 = int.parse(numMatch.group(3)!);
+        // Cek format ISO (YYYY-MM-DD / YYYY/MM/DD) terlebih dahulu agar 4 digit tahun tidak terpangkas
+        final isoMatch = isoDateRegExp.firstMatch(line);
+        if (isoMatch != null) {
+          final year = int.parse(isoMatch.group(1)!);
+          final month = int.parse(isoMatch.group(2)!);
+          final day = int.parse(isoMatch.group(3)!);
+
+          if (year >= 2000 && year <= currentYear + 1 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+            foundYear = year;
+            foundMonth = month;
+            foundDay = day;
+            continue;
+          }
+        }
+
+        // Cek format teks (17 Nov 2026 / 17 November 2026)
+        final textMatch = dateTextRegExp.firstMatch(line);
+        if (textMatch != null) {
+          final day = int.parse(textMatch.group(1)!);
+          final monthStr = textMatch.group(2)!.toLowerCase();
+          int year = int.parse(textMatch.group(3)!);
+          if (year < 100) year += 2000;
+
+          final m = _parseIndonesianMonth(monthStr);
+          if (m != null && year >= 2000 && year <= currentYear + 1 && day >= 1 && day <= 31) {
+            foundDay = day;
+            foundMonth = m;
+            foundYear = year;
+            continue;
+          }
+        }
+
+        // Cek format DMY dengan tahun 4-digit (DD/MM/YYYY)
+        final dmy4Match = dmy4RegExp.firstMatch(line);
+        if (dmy4Match != null) {
+          final p1 = int.parse(dmy4Match.group(1)!);
+          final p2 = int.parse(dmy4Match.group(2)!);
+          final p3 = int.parse(dmy4Match.group(3)!);
+
+          if (p3 >= 2000 && p3 <= currentYear + 1) {
+            if (p1 <= 31 && p2 <= 12) {
+              foundDay = p1;
+              foundMonth = p2;
+              foundYear = p3;
+              continue;
+            } else if (p1 <= 12 && p2 <= 31) {
+              foundMonth = p1;
+              foundDay = p2;
+              foundYear = p3;
+              continue;
+            }
+          }
+        }
+
+        // Cek format DMY dengan tahun 2-digit (DD/MM/YY)
+        final dmy2Match = dmy2RegExp.firstMatch(line);
+        if (dmy2Match != null) {
+          final p1 = int.parse(dmy2Match.group(1)!);
+          final p2 = int.parse(dmy2Match.group(2)!);
+          int p3 = int.parse(dmy2Match.group(3)!);
           if (p3 < 100) p3 += 2000;
 
-          if (p1 <= 31 && p2 <= 12) {
-            foundDay = p1;
-            foundMonth = p2;
-            foundYear = p3;
-          } else if (p1 > 1000 && p2 <= 12 && p3 <= 31) {
-            foundYear = p1;
-            foundMonth = p2;
-            foundDay = p3;
-          }
-        } else {
-          final textMatch = dateTextRegExp.firstMatch(line);
-          if (textMatch != null) {
-            final day = int.parse(textMatch.group(1)!);
-            final monthStr = textMatch.group(2)!.toLowerCase();
-            int year = int.parse(textMatch.group(3)!);
-            if (year < 100) year += 2000;
-
-            final m = _parseIndonesianMonth(monthStr);
-            if (m != null) {
-              foundDay = day;
-              foundMonth = m;
-              foundYear = year;
+          if (p3 >= 2000 && p3 <= currentYear + 1) {
+            if (p1 <= 31 && p2 <= 12) {
+              foundDay = p1;
+              foundMonth = p2;
+              foundYear = p3;
+              continue;
+            } else if (p1 <= 12 && p2 <= 31) {
+              foundMonth = p1;
+              foundDay = p2;
+              foundYear = p3;
+              continue;
             }
           }
         }
@@ -242,17 +296,20 @@ class LocalReceiptParser implements ReceiptUnderstandingService {
     }
 
     if (foundDay != null && foundMonth != null && foundYear != null) {
-      return (
-        dateTime: DateTime(
+      try {
+        final parsed = DateTime(
           foundYear,
           foundMonth,
           foundDay,
           foundHour ?? 12,
           foundMinute ?? 0,
           foundSecond ?? 0,
-        ),
-        isCertain: true,
-      );
+        );
+        return (
+          dateTime: parsed,
+          isCertain: true,
+        );
+      } catch (_) {}
     }
 
     return (dateTime: DateTime.now(), isCertain: false);

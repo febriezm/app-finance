@@ -177,6 +177,10 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
     if (mounted) {
       if (txId != null) {
         unawaited(AppHaptics.medium());
+        // Sinkronisasi bulan tab Transaksi ke bulan transaksi struk yang disimpan
+        ref.read(selectedTransactionMonthProvider.notifier).state =
+            DateTime(_occurredAt.year, _occurredAt.month, 1);
+
         // Refresh providers
         ref.invalidate(walletsWithBalanceStreamProvider);
         ref.invalidate(recentTransactionsStreamProvider);
@@ -185,7 +189,7 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
           const SnackBar(content: Text('Transaksi struk berhasil dikonfirmasi dan dicatat!')),
         );
         // Kembali ke dashboard/transaksi
-        context.go(AppRouter.transactions);
+        context.go(AppRouter.transactions, extra: {'initialMonth': _occurredAt});
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Gagal menyimpan transaksi. Silakan periksa kembali data.')),

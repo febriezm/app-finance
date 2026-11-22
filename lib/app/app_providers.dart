@@ -164,7 +164,13 @@ final totalAssetBalanceProvider = netOperationalBalanceProvider;
 // Reactive Streams for Transactions
 final recentTransactionsStreamProvider = StreamProvider<List<TransactionWithDetails>>((ref) {
   final repo = ref.watch(transactionRepositoryProvider);
-  return repo.watchRecentTransactions(limit: 20);
+  return repo.watchRecentTransactions(limit: 100);
+});
+
+/// Bulan yang dipilih pada Tab Riwayat Transaksi (format: DateTime(year, month, 1))
+final selectedTransactionMonthProvider = StateProvider<DateTime>((ref) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, 1);
 });
 
 // Categories Stream
