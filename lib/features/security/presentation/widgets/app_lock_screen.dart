@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/app_providers.dart';
@@ -7,6 +8,7 @@ import '../../../../core/utils/app_haptics.dart';
 import 'pin_dots_indicator.dart';
 import 'pin_keypad.dart';
 
+/// Layar Kunci Aplikasi — MyFinance Minimal (Quiet, Clean, Premium).
 class AppLockScreen extends ConsumerStatefulWidget {
   const AppLockScreen({super.key});
 
@@ -21,7 +23,6 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
   @override
   void initState() {
     super.initState();
-    // Otomatis picu biometrik (Face ID / Touch ID) saat layar terkunci tampil jika aktif
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _tryAutoBiometrics();
     });
@@ -36,15 +37,19 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
 
   void _onDigitPressed(String digit) {
     if (_isChecking) return;
-
+    bool shouldVerify = false;
     setState(() {
       if (_enteredPin.length < 6) {
         _enteredPin += digit;
         if (_enteredPin.length == 6) {
-          _verifyPin();
+          shouldVerify = true;
         }
       }
     });
+
+    if (shouldVerify) {
+      _verifyPin();
+    }
   }
 
   void _onDeletePressed() {
@@ -62,15 +67,18 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
     final success = await ref
         .read(appLockControllerProvider.notifier)
         .unlockWithPin(_enteredPin);
+    if (!mounted) return;
     setState(() => _isChecking = false);
 
     if (success) {
-      await AppHaptics.medium();
+      unawaited(AppHaptics.medium());
     } else {
-      await AppHaptics.heavy();
-      setState(() {
-        _enteredPin = '';
-      });
+      unawaited(AppHaptics.heavy());
+      if (mounted) {
+        setState(() {
+          _enteredPin = '';
+        });
+      }
     }
   }
 
@@ -78,9 +86,13 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final lockState = ref.watch(appLockControllerProvider);
+    final bgScaffold = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final expenseColor = isDark ? AppColors.expenseDark : AppColors.expenseLight;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0D1117) : const Color(0xFFF8F9FA),
+      backgroundColor: bgScaffold,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -89,52 +101,46 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const SizedBox(height: 12),
 
-                      // Bagian Atas: Ikon & Judul
+                      // Bagian Atas: Gembok Minimalis & Judul
                       Column(
                         children: [
                           Container(
-                            width: 72,
-                            height: 72,
+                            width: 56,
+                            height: 56,
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.12),
+                              color: surfaceColor,
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.3),
-                                width: 2,
-                              ),
+                              border: Border.all(color: borderColor, width: 0.8),
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Icon(
                                 Icons.lock_outline_rounded,
-                                size: 36,
-                                color: AppColors.primary,
+                                size: 26,
+                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 18),
                           Text(
                             'MyFinance Terkunci',
-                            style: AppTypography.title2.copyWith(
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.3,
-                            ),
+                            style: AppTypography.pageTitle.copyWith(fontSize: 20),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Masukkan 6 digit kode sandi Anda',
-                            style: AppTypography.caption1.copyWith(
+                            style: AppTypography.caption.copyWith(
                               color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 28),
 
                           // Indikator Titik PIN
                           PinDotsIndicator(
@@ -142,24 +148,22 @@ class _AppLockScreenState extends ConsumerState<AppLockScreen> {
                             hasError: lockState.errorMessage != null,
                           ),
 
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
 
                           // Pesan Error jika salah
-                          if (lockState.errorMessage != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: AppColors.error.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                lockState.errorMessage!,
-                                style: AppTypography.caption2.copyWith(color: AppColors.error),
-                                textAlign: TextAlign.center,
-                              ),
-                            )
-                          else
-                            const SizedBox(height: 24),
+                          SizedBox(
+                            height: 24,
+                            child: lockState.errorMessage != null
+                                ? Text(
+                                    lockState.errorMessage!,
+                                    style: AppTypography.caption.copyWith(
+                                      color: expenseColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
                         ],
                       ),
 

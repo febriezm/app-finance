@@ -1,12 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/app_haptics.dart';
 import 'pin_dots_indicator.dart';
 import 'pin_keypad.dart';
 
+/// Modal Sheet Verifikasi PIN — MyFinance Minimal (Quiet, Clean, Premium).
 class PinVerifySheet extends ConsumerStatefulWidget {
   final String title;
   final String subtitle;
@@ -49,15 +50,20 @@ class _PinVerifySheetState extends ConsumerState<PinVerifySheet> {
 
   void _onDigitPressed(String digit) {
     if (_isVerifying) return;
+    bool shouldVerify = false;
     setState(() {
       _errorMessage = null;
       if (_enteredPin.length < 6) {
         _enteredPin += digit;
         if (_enteredPin.length == 6) {
-          _verify();
+          shouldVerify = true;
         }
       }
     });
+
+    if (shouldVerify) {
+      _verify();
+    }
   }
 
   void _onDeletePressed() {
@@ -77,10 +83,10 @@ class _PinVerifySheetState extends ConsumerState<PinVerifySheet> {
     setState(() => _isVerifying = false);
 
     if (isValid) {
-      await AppHaptics.medium();
+      unawaited(AppHaptics.medium());
       if (mounted) Navigator.pop(context, true);
     } else {
-      await AppHaptics.heavy();
+      unawaited(AppHaptics.heavy());
       if (mounted) {
         setState(() {
           _errorMessage = 'Kode sandi salah. Silakan coba lagi.';
@@ -93,83 +99,99 @@ class _PinVerifySheetState extends ConsumerState<PinVerifySheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final expenseColor = isDark ? AppColors.expenseDark : AppColors.expenseLight;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+        color: surfaceColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: borderColor, width: 0.8),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 36,
-              height: 5,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle minimalis
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context, false),
-                icon: const Icon(Icons.close_rounded),
-              ),
-              Text(
-                widget.title,
-                style: AppTypography.headline.copyWith(fontSize: 16),
-              ),
-              const SizedBox(width: 48),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          Text(
-            widget.subtitle,
-            style: AppTypography.caption1.copyWith(
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.title,
+                  style: AppTypography.title2.copyWith(fontSize: 17),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  splashRadius: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 8),
 
-          // Indikator Titik PIN
-          PinDotsIndicator(
-            currentLength: _enteredPin.length,
-            hasError: _errorMessage != null,
-          ),
-          const SizedBox(height: 16),
-
-          // Pesan Error
-          if (_errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                _errorMessage!,
-                style: AppTypography.caption1.copyWith(color: AppColors.error),
-                textAlign: TextAlign.center,
+            Text(
+              widget.subtitle,
+              style: AppTypography.caption.copyWith(
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
               ),
-            )
-          else
-            const SizedBox(height: 18),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 22),
 
-          // Papan Tombol Angka
-          PinKeypad(
-            onDigitPressed: _onDigitPressed,
-            onDeletePressed: _onDeletePressed,
-          ),
+            // Indikator Titik PIN
+            PinDotsIndicator(
+              currentLength: _enteredPin.length,
+              hasError: _errorMessage != null,
+            ),
+            const SizedBox(height: 14),
 
-          const SizedBox(height: 24),
-        ],
+            // Pesan Error (Zero Layout Shift)
+            SizedBox(
+              height: 22,
+              child: _errorMessage != null
+                  ? Text(
+                      _errorMessage!,
+                      style: AppTypography.caption.copyWith(
+                        color: expenseColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 6),
+
+            // Papan Tombol Angka Minimalis
+            PinKeypad(
+              onDigitPressed: _onDigitPressed,
+              onDeletePressed: _onDeletePressed,
+            ),
+
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }

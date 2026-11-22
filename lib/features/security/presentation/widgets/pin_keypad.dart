@@ -1,8 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/app_haptics.dart';
 
+/// Papan Tombol Numerik PIN — MyFinance Minimal (Quiet, Clean, Premium).
+///
+/// Karakteristik:
+/// - Tata letak 3x3 + 0 dengan lebar proporsional (max 300px).
+/// - Tombol lingkaran datar (flat) 70x70 dengan sentuhan haptic lembut.
+/// - Border hairline 0.6px tanpa bayangan berat atau skeuomorfik.
+/// - Tombol Hapus (Backspace) dan Biometrik di baris terbawah.
 class PinKeypad extends StatelessWidget {
   final void Function(String digit) onDigitPressed;
   final VoidCallback onDeletePressed;
@@ -36,14 +44,14 @@ class PinKeypad extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      constraints: const BoxConstraints(maxWidth: 320),
+      constraints: const BoxConstraints(maxWidth: 300),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Baris 1-3
           for (int row = 0; row < 3; row++)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -55,22 +63,30 @@ class PinKeypad extends StatelessWidget {
 
           // Baris 4 (Biometrik, 0, Hapus)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 // Tombol Kiri (Biometrik / Kosong)
                 SizedBox(
-                  width: 72,
-                  height: 72,
+                  width: 70,
+                  height: 70,
                   child: showBiometricButton && onBiometricPressed != null
-                      ? IconButton(
-                          onPressed: () {
-                            AppHaptics.light();
+                      ? InkResponse(
+                          onTap: () {
+                            unawaited(AppHaptics.light());
                             onBiometricPressed!();
                           },
-                          icon: Icon(biometricIcon, size: 30, color: AppColors.primary),
-                          tooltip: 'Biometrik / Face ID',
+                          radius: 35,
+                          containedInkWell: true,
+                          highlightShape: BoxShape.circle,
+                          child: Center(
+                            child: Icon(
+                              biometricIcon,
+                              size: 28,
+                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            ),
+                          ),
                         )
                       : const SizedBox.shrink(),
                 ),
@@ -80,19 +96,23 @@ class PinKeypad extends StatelessWidget {
 
                 // Tombol Kanan (Hapus Backspace)
                 SizedBox(
-                  width: 72,
-                  height: 72,
-                  child: IconButton(
-                    onPressed: () {
-                      AppHaptics.light();
+                  width: 70,
+                  height: 70,
+                  child: InkResponse(
+                    onTap: () {
+                      unawaited(AppHaptics.light());
                       onDeletePressed();
                     },
-                    icon: Icon(
-                      Icons.backspace_outlined,
-                      size: 26,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    radius: 35,
+                    containedInkWell: true,
+                    highlightShape: BoxShape.circle,
+                    child: Center(
+                      child: Icon(
+                        Icons.backspace_outlined,
+                        size: 22,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
                     ),
-                    tooltip: 'Hapus',
                   ),
                 ),
               ],
@@ -106,30 +126,34 @@ class PinKeypad extends StatelessWidget {
   Widget _buildDigitButton(Map<String, String> item, bool isDark) {
     final digit = item['digit']!;
     final letters = item['letters']!;
+    final surfaceButton = isDark ? const Color(0xFF191919) : const Color(0xFFF7F7F8);
+    final borderButton = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return InkResponse(
       onTap: () {
-        AppHaptics.light();
+        unawaited(AppHaptics.light());
         onDigitPressed(digit);
       },
-      radius: 36,
+      radius: 35,
       containedInkWell: true,
       highlightShape: BoxShape.circle,
       child: Container(
-        width: 72,
-        height: 72,
+        width: 70,
+        height: 70,
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE5E5EA),
+          color: surfaceButton,
           shape: BoxShape.circle,
+          border: Border.all(color: borderButton, width: 0.6),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               digit,
-              style: AppTypography.title1.copyWith(
-                fontSize: 28,
+              style: AppTypography.pageTitle.copyWith(
+                fontSize: 25,
                 fontWeight: FontWeight.w400,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                 height: 1.1,
               ),
             ),
@@ -137,10 +161,10 @@ class PinKeypad extends StatelessWidget {
               Text(
                 letters,
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 8.5,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 1.2,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  letterSpacing: 1.4,
+                  color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
                 ),
               ),
           ],
