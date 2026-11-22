@@ -779,17 +779,18 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                   title: 'Rekening Bank',
                   actionLabel: '${bankWallets.length}',
                 ),
-                ...bankWallets.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final item = entry.value;
-                  return WalletListTile(
-                    wallet: item.wallet,
-                    currentBalance: item.currentBalance,
-                    showDivider: idx < bankWallets.length - 1,
-                    onTap: () => _showWalletDetailSheet(context, ref, item),
+                ...bankWallets.map((item) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: WalletCard(
+                      wallet: item.wallet,
+                      currentBalance: item.currentBalance,
+                      isBalanceVisible: _isBalanceVisible,
+                      onTap: () => _showWalletDetailSheet(context, ref, item),
+                    ),
                   );
                 }),
-                const SizedBox(height: 24),
+                const SizedBox(height: 14),
               ],
 
               // 3. Kas Tunai Group
@@ -798,17 +799,18 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                   title: 'Kas Tunai',
                   actionLabel: '${cashWallets.length}',
                 ),
-                ...cashWallets.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final item = entry.value;
-                  return WalletListTile(
-                    wallet: item.wallet,
-                    currentBalance: item.currentBalance,
-                    showDivider: idx < cashWallets.length - 1,
-                    onTap: () => _showWalletDetailSheet(context, ref, item),
+                ...cashWallets.map((item) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: WalletCard(
+                      wallet: item.wallet,
+                      currentBalance: item.currentBalance,
+                      isBalanceVisible: _isBalanceVisible,
+                      onTap: () => _showWalletDetailSheet(context, ref, item),
+                    ),
                   );
                 }),
-                const SizedBox(height: 24),
+                const SizedBox(height: 14),
               ],
 
               // 4. E-Wallet Group
@@ -817,17 +819,18 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                   title: 'E-Wallet',
                   actionLabel: '${eWalletWallets.length}',
                 ),
-                ...eWalletWallets.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final item = entry.value;
-                  return WalletListTile(
-                    wallet: item.wallet,
-                    currentBalance: item.currentBalance,
-                    showDivider: idx < eWalletWallets.length - 1,
-                    onTap: () => _showWalletDetailSheet(context, ref, item),
+                ...eWalletWallets.map((item) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: WalletCard(
+                      wallet: item.wallet,
+                      currentBalance: item.currentBalance,
+                      isBalanceVisible: _isBalanceVisible,
+                      onTap: () => _showWalletDetailSheet(context, ref, item),
+                    ),
                   );
                 }),
-                const SizedBox(height: 24),
+                const SizedBox(height: 14),
               ],
 
               // 5. Lainnya Group
@@ -836,17 +839,18 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                   title: 'Lainnya / Investasi',
                   actionLabel: '${otherWallets.length}',
                 ),
-                ...otherWallets.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final item = entry.value;
-                  return WalletListTile(
-                    wallet: item.wallet,
-                    currentBalance: item.currentBalance,
-                    showDivider: idx < otherWallets.length - 1,
-                    onTap: () => _showWalletDetailSheet(context, ref, item),
+                ...otherWallets.map((item) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: WalletCard(
+                      wallet: item.wallet,
+                      currentBalance: item.currentBalance,
+                      isBalanceVisible: _isBalanceVisible,
+                      onTap: () => _showWalletDetailSheet(context, ref, item),
+                    ),
                   );
                 }),
-                const SizedBox(height: 24),
+                const SizedBox(height: 14),
               ],
 
               // State jika dompet aktif kosong tetapi arsip tersedia
@@ -889,17 +893,18 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                     ),
                   ),
                 ),
-                ...archivedWallets.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final item = entry.value;
-                  return WalletListTile(
-                    wallet: item.wallet,
-                    currentBalance: item.currentBalance,
-                    showDivider: idx < archivedWallets.length - 1,
-                    onTap: () => _showWalletDetailSheet(context, ref, item),
+                ...archivedWallets.map((item) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: WalletCard(
+                      wallet: item.wallet,
+                      currentBalance: item.currentBalance,
+                      isBalanceVisible: _isBalanceVisible,
+                      onTap: () => _showWalletDetailSheet(context, ref, item),
+                    ),
                   );
                 }),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
               ],
             ],
           );

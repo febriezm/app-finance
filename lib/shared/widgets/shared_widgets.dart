@@ -15,4 +15,5 @@ export 'minimal_month_selector.dart';
 export 'minimal_section_header.dart';
 export 'receipt_preview_card.dart';
 export 'transaction_list_tile.dart';
+export 'wallet_card.dart';
 export 'wallet_list_tile.dart';
