@@ -572,9 +572,9 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
                     const SizedBox(height: 12),
                   ],
 
-                  // SECTION 3: Total Transaksi (Typography-First, Pure & Borderless)
+                  // SECTION 3: Total Transaksi (Typography-First, Generous & Clean)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -584,10 +584,10 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
                             Text(
                               'TOTAL TRANSAKSI',
                               style: AppTypography.caption.copyWith(
-                                color: textTertiary,
-                                letterSpacing: 1.2,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                letterSpacing: 1.0,
                                 fontWeight: FontWeight.w600,
-                                fontSize: 11,
+                                fontSize: 12,
                               ),
                             ),
                             if (!widget.draft.isTotalCertain) ...[
@@ -596,15 +596,15 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
                             ],
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 10),
                         TextField(
                           controller: _amountController,
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.center,
-                          style: AppTypography.headline.copyWith(
-                            fontSize: 34,
+                          style: AppTypography.balanceLarge.copyWith(
+                            fontSize: 38,
                             fontWeight: FontWeight.w700,
-                            letterSpacing: -0.6,
+                            letterSpacing: -0.8,
                             color: _amount > 0
                                 ? expenseColor
                                 : (isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight),
@@ -612,23 +612,23 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
                           ),
                           decoration: InputDecoration(
                             hintText: 'Rp 0',
-                            hintStyle: AppTypography.headline.copyWith(
-                              fontSize: 34,
+                            hintStyle: AppTypography.balanceLarge.copyWith(
+                              fontSize: 38,
                               fontWeight: FontWeight.w700,
-                              letterSpacing: -0.6,
-                              color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
+                              letterSpacing: -0.8,
+                              color: (isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight)
+                                  .withValues(alpha: 0.4),
                               fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 4),
                           ),
                           onChanged: _onAmountChanged,
                         ),
                         if (_amount == 0 || !widget.draft.isTotalCertain) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 8),
                           Text(
                             _amount == 0
                                 ? 'Nominal belum terdeteksi otomatis. Ketuk untuk mengisi.'
@@ -643,240 +643,286 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
 
-                  // SECTION 4: Detail Transaksi (Grouped Flat Form dengan Hairline Dividers)
+                  // SECTION 4: Detail Transaksi (Konsisten dengan AddTransactionSheet)
+                  // 1. Toko / Merchant
+                  Text(
+                    'Merchant / Toko',
+                    style: AppTypography.caption.copyWith(
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Container(
                     decoration: BoxDecoration(
                       color: surfaceColor,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: borderColor, width: 0.8),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                    child: Row(
                       children: [
-                        // Row 1: Toko / Merchant
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _merchantController,
+                            style: AppTypography.bodyMedium,
+                            decoration: InputDecoration(
+                              icon: Icon(
+                                Icons.storefront_outlined,
+                                size: 19,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                              hintText: 'Merchant, toko, atau sumber (opsional)',
+                              border: InputBorder.none,
+                              hintStyle: AppTypography.caption.copyWith(
+                                color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (!widget.draft.isMerchantCertain)
+                          const ConfidenceBadge(isCertain: false),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 2. Tanggal & Waktu Transaksi
+                  InkWell(
+                    onTap: _selectDate,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tanggal & Waktu',
+                          style: AppTypography.caption.copyWith(
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: surfaceColor,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: borderColor, width: 0.8),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           child: Row(
                             children: [
-                              Icon(Icons.storefront_outlined, size: 18, color: textSecondary),
-                              const SizedBox(width: 12),
-                              SizedBox(
-                                width: 90,
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                size: 18,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
                                 child: Text(
-                                  'Toko / Merchant',
-                                  style: AppTypography.caption.copyWith(color: textTertiary, fontWeight: FontWeight.w500),
-                                ),
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _merchantController,
-                                  style: AppTypography.bodyMedium,
-                                  decoration: InputDecoration(
-                                    hintText: 'Nama Toko (Indomaret, dsb)',
-                                    hintStyle: AppTypography.body.copyWith(color: textTertiary),
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.zero,
+                                  AppDateFormatter.formatDateTime(_occurredAt),
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                    fontFeatures: const [FontFeature.tabularFigures()],
                                   ),
                                 ),
                               ),
-                              if (!widget.draft.isMerchantCertain)
-                                const ConfidenceBadge(isCertain: false),
-                            ],
-                          ),
-                        ),
-                        Divider(height: 1, thickness: 0.6, indent: 44, color: borderColor),
-
-                        // Row 2: Tanggal & Waktu
-                        InkWell(
-                          onTap: _selectDate,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            child: Row(
-                              children: [
-                                Icon(Icons.calendar_today_outlined, size: 18, color: textSecondary),
-                                const SizedBox(width: 12),
-                                SizedBox(
-                                  width: 90,
-                                  child: Text(
-                                    'Tanggal',
-                                    style: AppTypography.caption.copyWith(color: textTertiary, fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    AppDateFormatter.formatDateTime(_occurredAt),
-                                    style: AppTypography.bodyMedium.copyWith(
-                                      fontFeatures: const [FontFeature.tabularFigures()],
-                                    ),
-                                  ),
-                                ),
-                                Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Divider(height: 1, thickness: 0.6, indent: 44, color: borderColor),
-
-                        // Row 3: Dompet Sumber Dana
-                        InkWell(
-                          onTap: walletsAsync.valueOrNull != null && walletsAsync.valueOrNull!.isNotEmpty
-                              ? () => _showWalletPickerSheet(context, walletsAsync.valueOrNull!)
-                              : null,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            child: Row(
-                              children: [
-                                Icon(Icons.account_balance_wallet_outlined, size: 18, color: textSecondary),
-                                const SizedBox(width: 12),
-                                SizedBox(
-                                  width: 90,
-                                  child: Text(
-                                    'Dompet',
-                                    style: AppTypography.caption.copyWith(color: textTertiary, fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: walletsAsync.when(
-                                    data: (wallets) {
-                                      final selectedWallet = wallets.cast<WalletWithBalance?>().firstWhere(
-                                        (w) => w?.wallet.id == _selectedWalletId,
-                                        orElse: () => wallets.isNotEmpty ? wallets.first : null,
-                                      );
-                                      return Text(
-                                        selectedWallet != null
-                                            ? '${selectedWallet.wallet.name} (${CurrencyFormatter.formatRupiah(selectedWallet.currentBalance)})'
-                                            : 'Pilih Dompet',
-                                        style: AppTypography.bodyMedium,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      );
-                                    },
-                                    loading: () => Text(
-                                      'Memuat dompet...',
-                                      style: AppTypography.caption.copyWith(color: textSecondary),
-                                    ),
-                                    error: (e, _) => const Text(
-                                      'Gagal memuat dompet',
-                                      style: TextStyle(color: Colors.red, fontSize: 13),
-                                    ),
-                                  ),
-                                ),
-                                Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Divider(height: 1, thickness: 0.6, indent: 44, color: borderColor),
-
-                        // Row 4: Kategori Pengeluaran
-                        InkWell(
-                          onTap: categoriesAsync.valueOrNull != null && categoriesAsync.valueOrNull!.isNotEmpty
-                              ? () => _showCategoryPickerSheet(context, categoriesAsync.valueOrNull!)
-                              : null,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            child: Row(
-                              children: [
-                                categoriesAsync.when(
-                                  data: (categories) {
-                                    final selectedCat = categories.cast<Category?>().firstWhere(
-                                      (c) => c?.id == _selectedCategoryId,
-                                      orElse: () => categories.isNotEmpty ? categories.first : null,
-                                    );
-                                    if (selectedCat != null) {
-                                      return Icon(
-                                        AppIcons.getIcon(selectedCat.iconKey),
-                                        size: 18,
-                                        color: AppIcons.parseColor(selectedCat.colorHex),
-                                      );
-                                    }
-                                    return Icon(Icons.category_outlined, size: 18, color: textSecondary);
-                                  },
-                                  loading: () => Icon(Icons.category_outlined, size: 18, color: textSecondary),
-                                  error: (_, __) => Icon(Icons.category_outlined, size: 18, color: textSecondary),
-                                ),
-                                const SizedBox(width: 12),
-                                SizedBox(
-                                  width: 90,
-                                  child: Text(
-                                    'Kategori',
-                                    style: AppTypography.caption.copyWith(color: textTertiary, fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: categoriesAsync.when(
-                                    data: (categories) {
-                                      final selectedCat = categories.cast<Category?>().firstWhere(
-                                        (c) => c?.id == _selectedCategoryId,
-                                        orElse: () => categories.isNotEmpty ? categories.first : null,
-                                      );
-                                      return Text(
-                                        selectedCat?.name ?? 'Pilih Kategori',
-                                        style: AppTypography.bodyMedium,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      );
-                                    },
-                                    loading: () => Text(
-                                      'Memuat kategori...',
-                                      style: AppTypography.caption.copyWith(color: textSecondary),
-                                    ),
-                                    error: (e, _) => const Text(
-                                      'Gagal memuat kategori',
-                                      style: TextStyle(color: Colors.red, fontSize: 13),
-                                    ),
-                                  ),
-                                ),
-                                Icon(Icons.chevron_right_rounded, size: 18, color: textSecondary),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Divider(height: 1, thickness: 0.6, indent: 44, color: borderColor),
-
-                        // Row 5: Catatan Tambahan
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Icon(Icons.edit_note_rounded, size: 18, color: textSecondary),
-                              ),
-                              const SizedBox(width: 12),
-                              SizedBox(
-                                width: 90,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 2),
-                                  child: Text(
-                                    'Catatan',
-                                    style: AppTypography.caption.copyWith(color: textTertiary, fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _notesController,
-                                  style: AppTypography.body,
-                                  maxLines: 2,
-                                  minLines: 1,
-                                  decoration: InputDecoration(
-                                    hintText: 'Catatan tambahan (opsional)...',
-                                    hintStyle: AppTypography.body.copyWith(color: textTertiary),
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                               ),
                             ],
                           ),
                         ),
                       ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 3. Dompet Sumber Dana
+                  InkWell(
+                    onTap: walletsAsync.valueOrNull != null && walletsAsync.valueOrNull!.isNotEmpty
+                        ? () => _showWalletPickerSheet(context, walletsAsync.valueOrNull!)
+                        : null,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Dompet Sumber',
+                          style: AppTypography.caption.copyWith(
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: surfaceColor,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: borderColor, width: 0.8),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.account_balance_wallet_outlined,
+                                size: 18,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: walletsAsync.when(
+                                  data: (wallets) {
+                                    final selectedWallet = wallets.cast<WalletWithBalance?>().firstWhere(
+                                      (w) => w?.wallet.id == _selectedWalletId,
+                                      orElse: () => wallets.isNotEmpty ? wallets.first : null,
+                                    );
+                                    return Text(
+                                      selectedWallet != null
+                                          ? '${selectedWallet.wallet.name} (${CurrencyFormatter.formatRupiah(selectedWallet.currentBalance)})'
+                                          : 'Pilih Dompet',
+                                      style: AppTypography.bodyMedium.copyWith(
+                                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    );
+                                  },
+                                  loading: () => Text('Memuat dompet...', style: AppTypography.caption.copyWith(color: textSecondary)),
+                                  error: (e, _) => const Text('Gagal memuat dompet', style: TextStyle(color: Colors.red, fontSize: 13)),
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 4. Kategori Pengeluaran
+                  InkWell(
+                    onTap: categoriesAsync.valueOrNull != null && categoriesAsync.valueOrNull!.isNotEmpty
+                        ? () => _showCategoryPickerSheet(context, categoriesAsync.valueOrNull!)
+                        : null,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Kategori',
+                          style: AppTypography.caption.copyWith(
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: surfaceColor,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: borderColor, width: 0.8),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          child: Row(
+                            children: [
+                              categoriesAsync.when(
+                                data: (categories) {
+                                  final selectedCat = categories.cast<Category?>().firstWhere(
+                                    (c) => c?.id == _selectedCategoryId,
+                                    orElse: () => categories.isNotEmpty ? categories.first : null,
+                                  );
+                                  if (selectedCat != null) {
+                                    return Icon(
+                                      AppIcons.getIcon(selectedCat.iconKey),
+                                      size: 18,
+                                      color: AppIcons.parseColor(selectedCat.colorHex),
+                                    );
+                                  }
+                                  return Icon(Icons.category_outlined, size: 18, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight);
+                                },
+                                loading: () => Icon(Icons.category_outlined, size: 18, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                error: (_, __) => Icon(Icons.category_outlined, size: 18, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: categoriesAsync.when(
+                                  data: (categories) {
+                                    final selectedCat = categories.cast<Category?>().firstWhere(
+                                      (c) => c?.id == _selectedCategoryId,
+                                      orElse: () => categories.isNotEmpty ? categories.first : null,
+                                    );
+                                    return Text(
+                                      selectedCat?.name ?? 'Pilih Kategori',
+                                      style: AppTypography.bodyMedium.copyWith(
+                                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    );
+                                  },
+                                  loading: () => Text('Memuat kategori...', style: AppTypography.caption.copyWith(color: textSecondary)),
+                                  error: (e, _) => const Text('Gagal memuat kategori', style: TextStyle(color: Colors.red, fontSize: 13)),
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 5. Catatan Tambahan
+                  Text(
+                    'Catatan',
+                    style: AppTypography.caption.copyWith(
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: surfaceColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor, width: 0.8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    child: TextField(
+                      controller: _notesController,
+                      style: AppTypography.bodyMedium,
+                      maxLines: 2,
+                      minLines: 1,
+                      decoration: InputDecoration(
+                        icon: Icon(
+                          Icons.edit_note_rounded,
+                          size: 20,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                        hintText: 'Rincian item atau catatan tambahan (opsional)',
+                        border: InputBorder.none,
+                        hintStyle: AppTypography.caption.copyWith(
+                          color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
                     ),
                   ),
 

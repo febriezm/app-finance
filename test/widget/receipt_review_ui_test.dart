@@ -127,10 +127,10 @@ void main() {
       expect(find.text('Rp 45.000'), findsOneWidget);
 
       // 4. Detail Transaksi (Grouped Flat List)
-      expect(find.text('Toko / Merchant'), findsOneWidget);
+      expect(find.text('Merchant / Toko'), findsOneWidget);
       expect(find.text('Indomaret Sudirman'), findsOneWidget);
-      expect(find.text('Tanggal'), findsOneWidget);
-      expect(find.text('Dompet'), findsOneWidget);
+      expect(find.text('Tanggal & Waktu'), findsOneWidget);
+      expect(find.text('Dompet Sumber'), findsOneWidget);
       expect(find.text('Kategori'), findsOneWidget);
       expect(find.text('Catatan'), findsOneWidget);
 
@@ -241,7 +241,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Dompet selector row
-      await tester.tap(find.text('Dompet'));
+      await tester.tap(find.text('Dompet Sumber'));
       await tester.pumpAndSettle();
 
       // Verify Wallet bottom sheet opened
