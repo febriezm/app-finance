@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:myfinance/app/app_providers.dart';
 import 'package:myfinance/core/database/app_database.dart';
+import 'package:myfinance/features/categories/domain/entities/category.dart';
+import 'package:myfinance/features/wallets/domain/entities/wallet.dart';
 import 'package:myfinance/features/receipt_scanner/domain/entities/receipt_draft.dart';
 import 'package:myfinance/features/receipt_scanner/domain/entities/receipt_item_draft.dart';
 import 'package:myfinance/features/receipt_scanner/presentation/screens/receipt_review_screen.dart';
@@ -66,12 +68,37 @@ void main() {
     );
   }
 
-  Widget buildTestWidget(ReceiptDraft draft) {
+  Widget buildTestWidget(ReceiptDraft draft, {Brightness brightness = Brightness.light}) {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final sampleWallet = Wallet(
+      id: 'w-cash',
+      name: 'Dompet Tunai',
+      type: WalletType.cash,
+      openingBalance: 500000,
+      openingDate: now,
+      createdAt: now,
+      updatedAt: now,
+    );
+    const sampleCategory = Category(
+      id: 'cat-exp-food',
+      name: 'Makanan & Minuman',
+      type: CategoryType.expense,
+      iconKey: 'restaurant',
+      colorHex: '#FF9500',
+    );
+
     return ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(inMemoryDb),
+        walletsWithBalanceStreamProvider.overrideWith(
+          (ref) => Stream.value([WalletWithBalance(wallet: sampleWallet, currentBalance: 500000)]),
+        ),
+        activeCategoriesStreamProvider(CategoryType.expense).overrideWith(
+          (ref) => Stream.value([sampleCategory]),
+        ),
       ],
       child: MaterialApp(
+        theme: ThemeData(brightness: brightness),
         home: ReceiptReviewScreen(draft: draft),
       ),
     );
@@ -87,39 +114,39 @@ void main() {
       await tester.pumpWidget(buildTestWidget(draft));
       await tester.pumpAndSettle();
 
-      // 1. Header
-      expect(find.text('Review Hasil Struk'), findsOneWidget);
+      // 1. Header Minimalis
+      expect(find.text('Review Struk'), findsOneWidget);
       expect(find.byIcon(Icons.arrow_back_ios_new_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
 
-      // 2. Receipt Preview
+      // 2. Receipt Preview Capsule
       expect(find.text('Lampiran Struk'), findsOneWidget);
       expect(find.text('Perbesar'), findsOneWidget);
 
-      // 3. Total Pengeluaran
-      expect(find.text('TOTAL PENGELUARAN'), findsOneWidget);
+      // 3. Total Transaksi (Typography-First)
+      expect(find.text('TOTAL TRANSAKSI'), findsOneWidget);
       expect(find.text('Rp 45.000'), findsOneWidget);
 
-      // 4. Nama Toko & Tanggal
-      expect(find.text('NAMA TOKO / MERCHANT'), findsOneWidget);
+      // 4. Detail Transaksi (Grouped Flat List)
+      expect(find.text('Toko / Merchant'), findsOneWidget);
       expect(find.text('Indomaret Sudirman'), findsOneWidget);
-      expect(find.text('TANGGAL & WAKTU'), findsOneWidget);
+      expect(find.text('Tanggal'), findsOneWidget);
+      expect(find.text('Dompet'), findsOneWidget);
+      expect(find.text('Kategori'), findsOneWidget);
+      expect(find.text('Catatan'), findsOneWidget);
 
-      // 5. Dompet & Kategori
-      expect(find.text('DOMPET SUMBER DANA'), findsOneWidget);
-      expect(find.text('KATEGORI PENGELUARAN'), findsOneWidget);
+      // 5. Rincian Struk & Item (Collapsible)
+      expect(find.text('Rincian Struk & Item'), findsOneWidget);
+      // Buka accordion rincian item
+      await tester.tap(find.text('Rincian Struk & Item'));
+      await tester.pumpAndSettle();
 
-      // 6. Rincian Biaya Struk (Subtotal & Pajak)
       expect(find.text('Rincian Biaya Struk'), findsOneWidget);
       expect(find.text('Subtotal'), findsOneWidget);
       expect(find.text('Pajak (PPN/PB1)'), findsOneWidget);
-
-      // 7. Rincian Item Belanja
-      expect(find.text('Rincian Item Belanja'), findsOneWidget);
       expect(find.text('Roti Cokelat'), findsOneWidget);
       expect(find.text('Kopi Susu'), findsOneWidget);
 
-      // 8. Sticky Action Button
+      // 6. Sticky Action Button
       expect(find.text('Konfirmasi & Simpan Transaksi'), findsOneWidget);
     });
 
@@ -132,7 +159,7 @@ void main() {
       await tester.pumpWidget(buildTestWidget(draft));
       await tester.pumpAndSettle();
 
-      // Tap preview
+      // Tap preview button
       await tester.tap(find.text('Perbesar'));
       await tester.pumpAndSettle();
 
@@ -181,8 +208,8 @@ void main() {
       await tester.pumpWidget(buildTestWidget(draftZero));
       await tester.pumpAndSettle();
 
-      // Banner status appears
-      expect(find.text('Nominal Belum Terdeteksi Otomatis'), findsOneWidget);
+      // Inline hint status appears
+      expect(find.text('Nominal belum terdeteksi otomatis. Ketuk untuk mengisi.'), findsOneWidget);
       // Secondary manual button appears
       expect(find.text('Beralih ke Input Manual'), findsOneWidget);
     });
@@ -202,6 +229,52 @@ void main() {
 
       // SnackBar validation message
       expect(find.text('Nominal pengeluaran harus lebih dari Rp 0.'), findsOneWidget);
+    });
+
+    testWidgets('Modal sheet selectors open for Wallet and Category', (tester) async {
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final draft = createSampleDraft();
+      await tester.pumpWidget(buildTestWidget(draft));
+      await tester.pumpAndSettle();
+
+      // Tap Dompet selector row
+      await tester.tap(find.text('Dompet'));
+      await tester.pumpAndSettle();
+
+      // Verify Wallet bottom sheet opened
+      expect(find.text('Pilih Dompet Sumber Dana'), findsOneWidget);
+      // Dismiss sheet
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      // Tap Kategori selector row
+      await tester.tap(find.text('Kategori'));
+      await tester.pumpAndSettle();
+
+      // Verify Category bottom sheet opened
+      expect(find.text('Pilih Kategori Pengeluaran'), findsOneWidget);
+      // Dismiss sheet
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Renders consistently in Dark Mode and small screens without overflow', (tester) async {
+      // iPhone SE screen size (320 x 568 pt)
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final draft = createSampleDraft();
+      await tester.pumpWidget(buildTestWidget(draft, brightness: Brightness.dark));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Review Struk'), findsOneWidget);
+      expect(find.text('TOTAL TRANSAKSI'), findsOneWidget);
+      expect(find.text('Konfirmasi & Simpan Transaksi'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 }
