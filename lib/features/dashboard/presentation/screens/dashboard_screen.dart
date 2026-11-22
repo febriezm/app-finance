@@ -35,6 +35,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsBindingObserver {
   Timer? _greetingRefreshTimer;
+  bool _isBalanceVisible = true;
 
   @override
   void initState() {
@@ -83,9 +84,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
     final budgetProgressAsync = ref.watch(budgetProgressStreamProvider(currentMonthKey));
     final monthlyIncomeAsync = ref.watch(monthlyIncomeProvider(currentMonthKey));
     final monthlyExpenseAsync = ref.watch(monthlyExpenseProvider(currentMonthKey));
-
-    final currentMonthDate = DateTime.now();
-    final monthDisplay = AppDateFormatter.formatMonthYear(currentMonthDate);
 
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
     final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
@@ -141,26 +139,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${GreetingHelper.getGreeting()},',
-                        style: AppTypography.caption.copyWith(
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                          letterSpacing: 0.1,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${GreetingHelper.getGreeting()},',
+                          style: AppTypography.caption.copyWith(
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            letterSpacing: 0.1,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        'Ringkasan Finansial',
-                        style: AppTypography.pageTitle.copyWith(
-                          fontSize: 22,
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        const SizedBox(height: 1),
+                        Text(
+                          'Ringkasan Finansial',
+                          style: AppTypography.pageTitle.copyWith(
+                            fontSize: 22,
+                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
@@ -194,45 +199,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
               ),
             ),
 
-            // 2. Total Balance (Fokus Utama — Typography-first & Generous Whitespace)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Total Saldo Bersih',
-                    style: AppTypography.caption.copyWith(
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  FinanceAmountText(
-                    amount: totalBalance,
-                    type: AmountDisplayType.neutral,
-                    style: AppTypography.balanceLarge.copyWith(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.8,
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  walletsAsync.maybeWhen(
-                    data: (wallets) {
-                      final activeCount = wallets.where((w) => !w.wallet.isArchived).length;
-                      return Text(
-                        'Tersimpan di $activeCount dompet & rekening aktif',
-                        style: AppTypography.caption.copyWith(
-                          color: isDark ? AppColors.textDisabledDark : AppColors.textSecondaryLight,
-                        ),
-                      );
-                    },
-                    orElse: () => const SizedBox.shrink(),
-                  ),
-                ],
-              ),
+            // 2. Dedicated Balance Card (Focal Point Utama — MyFinance Minimal)
+            _buildDedicatedBalanceCard(
+              context,
+              totalBalance: totalBalance,
+              walletsAsync: walletsAsync,
+              incomeAsync: monthlyIncomeAsync,
+              expenseAsync: monthlyExpenseAsync,
+              isDark: isDark,
+              surfaceColor: surfaceColor,
+              borderColor: borderColor,
             ),
 
             const SizedBox(height: 14),
@@ -275,22 +251,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
               ],
             ),
 
-            const SizedBox(height: 16),
-
-            // 4. Arus Kas Bulanan (Pemasukan & Pengeluaran Horizontal Bersih)
-            _buildMonthlyCashflow(
-              context,
-              monthDisplay: monthDisplay,
-              incomeAsync: monthlyIncomeAsync,
-              expenseAsync: monthlyExpenseAsync,
-              isDark: isDark,
-              surfaceColor: surfaceColor,
-              borderColor: borderColor,
-            ),
-
             const SizedBox(height: 14),
 
-            // 5. Ringkasan Anggaran (Budget Summary Flat)
+            // 4. Ringkasan Anggaran (Budget Summary Flat)
             _buildBudgetSummary(
               context,
               budgetAsync: budgetProgressAsync,
@@ -393,9 +356,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
     );
   }
 
-  Widget _buildMonthlyCashflow(
+  Widget _buildDedicatedBalanceCard(
     BuildContext context, {
-    required String monthDisplay,
+    required int totalBalance,
+    required AsyncValue<List<WalletWithBalance>> walletsAsync,
     required AsyncValue<int> incomeAsync,
     required AsyncValue<int> expenseAsync,
     required bool isDark,
@@ -404,96 +368,243 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
   }) {
     final income = incomeAsync.value ?? 0;
     final expense = expenseAsync.value ?? 0;
+    final dividerColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
+    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textTertiary = isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      key: const Key('dedicated_balance_card'),
       decoration: BoxDecoration(
         color: surfaceColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor, width: 0.8),
       ),
-      child: Row(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Pemasukan
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          // 1. Header: Label + Visibility Toggle + Wallets Glance
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+                    Flexible(
+                      child: Text(
+                        'TOTAL SALDO BERSIH',
+                        style: AppTypography.caption.copyWith(
+                          color: textSecondary,
+                          letterSpacing: 0.8,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      'Pemasukan',
-                      style: AppTypography.caption.copyWith(
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    InkWell(
+                      onTap: () {
+                        AppHaptics.light();
+                        setState(() {
+                          _isBalanceVisible = !_isBalanceVisible;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          _isBalanceVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          size: 16,
+                          color: textSecondary,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                FinanceAmountText(
-                  amount: income,
-                  type: AmountDisplayType.income,
-                  showPlusSign: false,
-                  style: AppTypography.bodyBold.copyWith(
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Divider Vertikal Tipis
-          Container(
-            height: 32,
-            width: 0.8,
-            color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-          ),
-          const SizedBox(width: 16),
-
-          // Pengeluaran
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
-                      ),
+              ),
+              const SizedBox(width: 8),
+              walletsAsync.maybeWhen(
+                data: (wallets) {
+                  final activeCount = wallets.where((w) => !w.wallet.isArchived).length;
+                  return Text(
+                    '$activeCount Dompet',
+                    style: AppTypography.caption2.copyWith(
+                      color: textTertiary,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Pengeluaran',
-                      style: AppTypography.caption.copyWith(
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
+                    maxLines: 1,
+                  );
+                },
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // 2. Hero Balance Amount (Focal Point Utama)
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: _isBalanceVisible
+                ? FinanceAmountText(
+                    amount: totalBalance,
+                    type: AmountDisplayType.neutral,
+                    style: AppTypography.balanceLarge.copyWith(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.8,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  )
+                : Text(
+                    'Rp ••••••••',
+                    style: AppTypography.balanceLarge.copyWith(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.8,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 3. Hairline Divider
+          Divider(height: 0.8, thickness: 0.8, color: dividerColor),
+
+          const SizedBox(height: 14),
+
+          // 4. Compact Arus Kas Bulan Berjalan (Income & Expense)
+          Row(
+            children: [
+              // Pemasukan
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Pemasukan',
+                            style: AppTypography.caption2.copyWith(
+                              color: textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _isBalanceVisible
+                          ? FinanceAmountText(
+                              amount: income,
+                              type: AmountDisplayType.income,
+                              showPlusSign: false,
+                              style: AppTypography.bodyBold.copyWith(
+                                fontSize: 14,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            )
+                          : Text(
+                              'Rp ••••••',
+                              style: AppTypography.bodyBold.copyWith(
+                                fontSize: 14,
+                                color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                FinanceAmountText(
-                  amount: expense,
-                  type: AmountDisplayType.expense,
-                  showPlusSign: false,
-                  style: AppTypography.bodyBold.copyWith(
-                    fontSize: 15,
-                  ),
+              ),
+
+              // Vertical subtle separator
+              const SizedBox(width: 10),
+              Container(
+                height: 28,
+                width: 0.8,
+                color: dividerColor,
+              ),
+              const SizedBox(width: 10),
+
+              // Pengeluaran
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Pengeluaran',
+                            style: AppTypography.caption2.copyWith(
+                              color: textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _isBalanceVisible
+                          ? FinanceAmountText(
+                              amount: expense,
+                              type: AmountDisplayType.expense,
+                              showPlusSign: false,
+                              style: AppTypography.bodyBold.copyWith(
+                                fontSize: 14,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            )
+                          : Text(
+                              'Rp ••••••',
+                              style: AppTypography.bodyBold.copyWith(
+                                fontSize: 14,
+                                color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
