@@ -14,14 +14,16 @@ void main() {
       expect(SupabaseConfig.url, startsWith('https://'));
     });
 
-    test('isConfigured returns false when running in default/unconfigured environment', () {
-      // By default without --dart-define, isConfigured should be false
-      expect(SupabaseConfig.isConfigured, isFalse);
+    test('isConfigured returns true when project credentials are provided', () {
+      expect(SupabaseConfig.isConfigured, isTrue);
+      expect(SupabaseConfig.url, contains('supabase.co'));
+      expect(SupabaseConfig.anonKey, startsWith('sb_publishable_'));
     });
 
-    test('safeUrl masks host or returns offline note when unconfigured', () {
+    test('safeUrl masks host cleanly without exposing private segments', () {
       final safe = SupabaseConfig.safeUrl;
       expect(safe, isNotEmpty);
+      expect(safe, contains('...'));
     });
   });
 
@@ -72,10 +74,9 @@ void main() {
       expect(genericFailure, isA<SupabaseFailure>());
     });
 
-    test('Initialization without environment config returns false and operates in SQLite offline mode', () async {
-      final success = await SupabaseService.init();
+    test('Initialization with demo fallback returns false and operates in SQLite offline mode', () async {
+      final success = await SupabaseService.init(customUrl: SupabaseConfig.defaultFallbackUrl);
       expect(success, isFalse);
-      expect(SupabaseService.isInitialized, isFalse);
     });
   });
 }

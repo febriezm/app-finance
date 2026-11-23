@@ -45,12 +45,14 @@ class SupabaseConnectionResult {
   factory SupabaseConnectionResult.success({
     required int latencyMs,
     String? userId,
+    String? note,
   }) {
     return SupabaseConnectionResult(
       isConnected: true,
       status: SupabaseConnectionStatus.connected,
       latencyMs: latencyMs,
       userId: userId,
+      errorMessage: note,
       testedAt: DateTime.now(),
     );
   }
@@ -90,7 +92,8 @@ class SupabaseService {
     final url = customUrl ?? SupabaseConfig.url;
     final anonKey = customAnonKey ?? SupabaseConfig.anonKey;
 
-    if (!SupabaseConfig.isConfigured && customUrl == null) {
+    final isDemo = url.contains('myfinance-demo.supabase.co') || url.isEmpty || anonKey.isEmpty;
+    if ((!SupabaseConfig.isConfigured && customUrl == null) || isDemo) {
       if (kDebugMode) {
         debugPrint('[SupabaseService] Belum dikonfigurasi. Aplikasi berjalan murni pada SQLite offline mode.');
       }
@@ -178,12 +181,12 @@ class SupabaseService {
       );
     } on PostgrestException catch (e) {
       stopwatch.stop();
-      // Bila tabel belum dimigrasikan tetapi koneksi server tercapai
-      if (e.code == '42P01') {
-        return SupabaseConnectionResult.failure(
-          errorMessage: 'Server Supabase terhubung, namun tabel belum dibuat (jalankan migrasi SQL).',
+      // Bila server Supabase terhubung namun tabel belum dimigrasikan (PostgreSQL 42P01 atau PostgREST PGRST205)
+      if (e.code == '42P01' || e.code == 'PGRST205') {
+        return SupabaseConnectionResult.success(
           latencyMs: stopwatch.elapsedMilliseconds,
-          status: SupabaseConnectionStatus.connected,
+          userId: currentUser?.id,
+          note: 'Server Supabase terhubung! Skema tabel belum dibuat (jalankan migrasi SQL di Supabase SQL Editor).',
         );
       }
       return SupabaseConnectionResult.failure(

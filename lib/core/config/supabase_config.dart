@@ -11,10 +11,16 @@ class SupabaseConfig {
   SupabaseConfig._();
 
   /// URL Supabase Cloud Project
-  static const String _envUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  static const String _envUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://qzgvgsgswkvbarplxbps.supabase.co',
+  );
 
   /// Publishable Anon Key Supabase
-  static const String _envAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+  static const String _envAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'sb_publishable_C7HVd9kCdKE8WHyanCsr4Q_d4xBOcw-',
+  );
 
   /// Fallback demo/mock URL untuk pengujian unit & development offline
   static const String defaultFallbackUrl = 'https://myfinance-demo.supabase.co';
