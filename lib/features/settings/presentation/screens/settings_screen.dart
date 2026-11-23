@@ -16,6 +16,8 @@ import '../../../categories/domain/entities/category.dart';
 import '../../../reports/presentation/widgets/export_sheet.dart';
 import '../../../security/presentation/widgets/pin_setup_sheet.dart';
 import '../../../security/presentation/widgets/pin_verify_sheet.dart';
+import '../../../../core/config/supabase_config.dart';
+import '../../../../core/services/supabase_service.dart';
 
 /// Halaman Pengaturan (Settings) — MyFinance Minimal (Quiet, Clean, Premium).
 ///
@@ -427,6 +429,19 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   );
                 },
+              ),
+              _buildDivider(isDark),
+              _buildSettingTile(
+                icon: Icons.cloud_done_outlined,
+                iconColor: Colors.blueAccent,
+                title: 'Koneksi Cloud (Supabase)',
+                subtitle: SupabaseConfig.isConfigured
+                    ? 'Terkoneksi ke ${SupabaseConfig.safeUrl}'
+                    : 'Mode Offline (SQLite Lokal Aktif)',
+                trailingBadge: SupabaseConfig.isConfigured ? 'Cloud' : 'Offline',
+                showChevron: true,
+                isDark: isDark,
+                onTap: () => _showSupabaseConnectionSheet(context, ref),
               ),
             ],
           ),
@@ -868,6 +883,297 @@ class SettingsScreen extends ConsumerWidget {
       context,
       title: title,
       message: content,
+    );
+  }
+
+  void _showSupabaseConnectionSheet(BuildContext context, WidgetRef ref) {
+    unawaited(AppHaptics.selection());
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _SupabaseConnectionModal(isDark: isDark),
+    );
+  }
+}
+
+/// Modal Uji Konektivitas Supabase Cloud — MyFinance Minimal
+class _SupabaseConnectionModal extends ConsumerStatefulWidget {
+  final bool isDark;
+
+  const _SupabaseConnectionModal({required this.isDark});
+
+  @override
+  ConsumerState<_SupabaseConnectionModal> createState() => _SupabaseConnectionModalState();
+}
+
+class _SupabaseConnectionModalState extends ConsumerState<_SupabaseConnectionModal> {
+  bool _isLoading = false;
+  SupabaseConnectionResult? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!SupabaseConfig.isConfigured) {
+      _result = SupabaseConnectionResult.notConfigured();
+    }
+  }
+
+  Future<void> _runConnectionTest() async {
+    setState(() => _isLoading = true);
+    unawaited(AppHaptics.medium());
+    try {
+      final res = await ref.read(supabaseServiceProvider).checkConnection();
+      if (mounted) {
+        setState(() {
+          _result = res;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _result = SupabaseConnectionResult.failure(errorMessage: e.toString());
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textSecondary = widget.isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final borderColor = widget.isDark ? AppColors.borderDark : AppColors.borderLight;
+    final surfaceElevated = widget.isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceLight;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.75,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: widget.isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: widget.isDark ? AppColors.dividerDark : AppColors.dividerLight,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Koneksi Supabase Cloud',
+                  style: AppTypography.title2.copyWith(fontWeight: FontWeight.w700),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: SupabaseConfig.isConfigured
+                        ? Colors.blue.withValues(alpha: 0.15)
+                        : Colors.orange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    SupabaseConfig.isConfigured ? 'Terkonfigurasi' : 'Mode Offline',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: SupabaseConfig.isConfigured ? Colors.blue : Colors.orange,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Status integrasi PostgreSQL cloud dan jaminan isolasi Row Level Security (RLS)',
+              style: AppTypography.caption.copyWith(color: textSecondary),
+            ),
+            const SizedBox(height: 16),
+            Divider(height: 1, thickness: 0.6, color: widget.isDark ? AppColors.dividerDark : AppColors.dividerLight),
+            const SizedBox(height: 16),
+
+            // Diagnostic Info Card
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: surfaceElevated,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: borderColor, width: 0.8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDiagRow('Target Cloud Host', SupabaseConfig.safeUrl, textSecondary),
+                  const SizedBox(height: 8),
+                  _buildDiagRow(
+                    'Basis Data Primer',
+                    'SQLite Lokal (0ms latency)',
+                    textSecondary,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDiagRow(
+                    'Kunci API',
+                    'Publishable Anon Key (Aman)',
+                    textSecondary,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDiagRow(
+                    'Identitas Sesi',
+                    ref.watch(supabaseCurrentUserProvider)?.id ?? 'Belum login (Lokal)',
+                    textSecondary,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Hasil Uji Koneksi
+            if (_result != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _result!.isConnected
+                      ? Colors.green.withValues(alpha: 0.08)
+                      : (_result!.status == SupabaseConnectionStatus.unconfigured
+                          ? Colors.orange.withValues(alpha: 0.08)
+                          : Colors.red.withValues(alpha: 0.08)),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _result!.isConnected
+                        ? Colors.green.withValues(alpha: 0.3)
+                        : (_result!.status == SupabaseConnectionStatus.unconfigured
+                            ? Colors.orange.withValues(alpha: 0.3)
+                            : Colors.red.withValues(alpha: 0.3)),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      _result!.isConnected
+                          ? Icons.check_circle_outline_rounded
+                          : (_result!.status == SupabaseConnectionStatus.unconfigured
+                              ? Icons.info_outline_rounded
+                              : Icons.error_outline_rounded),
+                      size: 20,
+                      color: _result!.isConnected
+                          ? Colors.green
+                          : (_result!.status == SupabaseConnectionStatus.unconfigured
+                              ? Colors.orange
+                              : Colors.red),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _result!.isConnected
+                                ? 'Terhubung (${_result!.latencyMs} ms)'
+                                : (_result!.status == SupabaseConnectionStatus.unconfigured
+                                    ? 'Mode Lokal Aktif'
+                                    : 'Koneksi Gagal'),
+                            style: AppTypography.bodyBold.copyWith(
+                              fontSize: 13,
+                              color: _result!.isConnected
+                                  ? Colors.green
+                                  : (_result!.status == SupabaseConnectionStatus.unconfigured
+                                      ? Colors.orange
+                                      : Colors.red),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _result!.errorMessage ??
+                                'PostgreSQL PostgREST endpoint merespons dengan baik dan siap digunakan.',
+                            style: AppTypography.caption2.copyWith(color: textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            const Spacer(),
+
+            // Action Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: borderColor, width: 0.8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Tutup'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _runConnectionTest,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.wifi_tethering_rounded, size: 18),
+                    label: Text(_isLoading ? 'Menguji...' : 'Uji Koneksi'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiagRow(String label, String value, Color textColor) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppTypography.caption.copyWith(color: textColor, fontWeight: FontWeight.w500),
+        ),
+        Text(
+          value,
+          style: AppTypography.caption.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }

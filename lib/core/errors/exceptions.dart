@@ -17,3 +17,16 @@ class ValidationException extends AppException {
 class NotFoundException extends AppException {
   const NotFoundException([super.message = 'Data tidak ditemukan.']);
 }
+
+class SupabaseException extends AppException {
+  final String? code;
+  const SupabaseException(super.message, [this.code]);
+}
+
+class SupabaseConnectionException extends SupabaseException {
+  const SupabaseConnectionException([super.message = 'Gagal terhubung ke Supabase Cloud.', super.code]);
+}
+
+class SupabaseAuthException extends SupabaseException {
+  const SupabaseAuthException([super.message = 'Terjadi kesalahan otentikasi Supabase.', super.code]);
+}

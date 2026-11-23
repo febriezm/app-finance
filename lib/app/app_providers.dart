@@ -53,6 +53,8 @@ import '../features/backup_restore/domain/usecases/restore_backup_usecase.dart';
 import '../features/backup_restore/domain/usecases/reset_database_usecase.dart';
 import '../features/backup_restore/presentation/controllers/backup_restore_controller.dart';
 import '../core/services/app_lock_service.dart';
+import '../core/services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sp;
 import '../features/security/presentation/controllers/app_lock_controller.dart';
 
 /// App Theme Provider
@@ -341,4 +343,34 @@ final appLockControllerProvider = StateNotifierProvider<AppLockController, AppLo
     lockService: ref.watch(appLockServiceProvider),
     appSettingsDao: ref.watch(appSettingsDaoProvider),
   );
+});
+
+// ============================================================================
+// Supabase Infrastructure Providers
+// ============================================================================
+final supabaseServiceProvider = Provider<SupabaseService>((ref) {
+  return SupabaseService();
+});
+
+final supabaseClientProvider = Provider<sp.SupabaseClient?>((ref) {
+  final service = ref.watch(supabaseServiceProvider);
+  return service.clientOrNull;
+});
+
+final supabaseAuthStateProvider = StreamProvider<sp.AuthState>((ref) {
+  final service = ref.watch(supabaseServiceProvider);
+  return service.authStateChanges;
+});
+
+final supabaseCurrentUserProvider = Provider<sp.User?>((ref) {
+  final authStateAsync = ref.watch(supabaseAuthStateProvider);
+  return authStateAsync.maybeWhen(
+    data: (state) => state.session?.user,
+    orElse: () => ref.watch(supabaseServiceProvider).currentUser,
+  );
+});
+
+final supabaseConnectionStatusProvider = FutureProvider<SupabaseConnectionResult>((ref) {
+  final service = ref.watch(supabaseServiceProvider);
+  return service.checkConnection();
 });
