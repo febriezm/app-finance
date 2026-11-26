@@ -38,132 +38,141 @@ class ScaffoldWithNavBar extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
       ),
       builder: (ctx) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: dividerColor,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+          top: false,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.88,
+            ),
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: dividerColor,
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    'Aksi Cepat',
-                    style: AppTypography.title3.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 17,
-                      letterSpacing: -0.3,
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      'Aksi Cepat',
+                      style: AppTypography.title3.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 17,
+                        letterSpacing: -0.3,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // Catat Pengeluaran
-                _buildActionTile(
-                  context,
-                  isDark: isDark,
-                  icon: Icons.arrow_upward_rounded,
-                  iconColor: isDark ? AppColors.expenseDark : AppColors.expenseLight,
-                  title: 'Catat Pengeluaran',
-                  subtitle: 'Catat belanja atau pengeluaran harian',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    AddTransactionSheet.show(context, initialType: TransactionType.expense);
-                  },
-                ),
-                Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
+                  // Catat Pengeluaran
+                  _buildActionTile(
+                    context,
+                    isDark: isDark,
+                    icon: Icons.arrow_upward_rounded,
+                    iconColor: isDark ? AppColors.expenseDark : AppColors.expenseLight,
+                    title: 'Catat Pengeluaran',
+                    subtitle: 'Catat belanja atau pengeluaran harian',
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      AddTransactionSheet.show(context, initialType: TransactionType.expense);
+                    },
+                  ),
+                  Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
 
-                // Catat Pemasukan
-                _buildActionTile(
-                  context,
-                  isDark: isDark,
-                  icon: Icons.arrow_downward_rounded,
-                  iconColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
-                  title: 'Catat Pemasukan',
-                  subtitle: 'Gaji, bonus, atau pendapatan lainnya',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    AddTransactionSheet.show(context, initialType: TransactionType.income);
-                  },
-                ),
-                Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
+                  // Catat Pemasukan
+                  _buildActionTile(
+                    context,
+                    isDark: isDark,
+                    icon: Icons.arrow_downward_rounded,
+                    iconColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+                    title: 'Catat Pemasukan',
+                    subtitle: 'Gaji, bonus, atau pendapatan lainnya',
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      AddTransactionSheet.show(context, initialType: TransactionType.income);
+                    },
+                  ),
+                  Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
 
-                // Transfer Saldo
-                _buildActionTile(
-                  context,
-                  isDark: isDark,
-                  icon: Icons.swap_horiz_rounded,
-                  iconColor: isDark ? AppColors.transferDark : AppColors.transferLight,
-                  title: 'Transfer Saldo',
-                  subtitle: 'Pindah dana antar rekening & dompet',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    AddTransactionSheet.show(context, initialType: TransactionType.transfer);
-                  },
-                ),
-                Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
+                  // Transfer Saldo
+                  _buildActionTile(
+                    context,
+                    isDark: isDark,
+                    icon: Icons.swap_horiz_rounded,
+                    iconColor: isDark ? AppColors.transferDark : AppColors.transferLight,
+                    title: 'Transfer Saldo',
+                    subtitle: 'Pindah dana antar rekening & dompet',
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      AddTransactionSheet.show(context, initialType: TransactionType.transfer);
+                    },
+                  ),
+                  Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
 
-                // Anggaran Bulanan
-                _buildActionTile(
-                  context,
-                  isDark: isDark,
-                  icon: Icons.pie_chart_outline_rounded,
-                  iconColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                  title: 'Anggaran Bulanan',
-                  subtitle: 'Kelola batas pengeluaran & kategori',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    context.push(AppRouter.budgets);
-                  },
-                ),
-                Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
+                  // Anggaran Bulanan
+                  _buildActionTile(
+                    context,
+                    isDark: isDark,
+                    icon: Icons.pie_chart_outline_rounded,
+                    iconColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    title: 'Anggaran Bulanan',
+                    subtitle: 'Kelola batas pengeluaran & kategori',
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      context.push(AppRouter.budgets);
+                    },
+                  ),
+                  Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
 
-                // Laporan Keuangan
-                _buildActionTile(
-                  context,
-                  isDark: isDark,
-                  icon: Icons.bar_chart_rounded,
-                  iconColor: Colors.blueAccent,
-                  title: 'Laporan Keuangan',
-                  subtitle: 'Analisis arus kas & ekspor laporan PDF/CSV',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    context.push(AppRouter.reports);
-                  },
-                ),
-                Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
+                  // Laporan Keuangan
+                  _buildActionTile(
+                    context,
+                    isDark: isDark,
+                    icon: Icons.bar_chart_rounded,
+                    iconColor: Colors.blueAccent,
+                    title: 'Laporan Keuangan',
+                    subtitle: 'Analisis arus kas & ekspor laporan PDF/CSV',
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      context.push(AppRouter.reports);
+                    },
+                  ),
+                  Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
 
-                // Scan Struk (OCR)
-                _buildActionTile(
-                  context,
-                  isDark: isDark,
-                  icon: Icons.document_scanner_outlined,
-                  iconColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                  title: 'Scan Struk (OCR)',
-                  subtitle: 'Ekstraksi otomatis struk belanja on-device',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    context.push(AppRouter.receiptScanner);
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
+                  // Scan Struk (OCR)
+                  _buildActionTile(
+                    context,
+                    isDark: isDark,
+                    icon: Icons.document_scanner_outlined,
+                    iconColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    title: 'Scan Struk (OCR)',
+                    subtitle: 'Ekstraksi otomatis struk belanja on-device',
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      context.push(AppRouter.receiptScanner);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         );
