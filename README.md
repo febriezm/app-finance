@@ -39,6 +39,10 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
 7. **Migrasi Data Lokal ke Cloud (Local-to-Cloud Migration)**
    - Dilengkapi modul migrasi transaksional otomatis untuk memindahkan data pengguna lokal terdahulu (*SQLite*) ke *Supabase PostgreSQL Cloud* secara terverifikasi.
 
+8. **Operasi CRUD Bersih (Clean In-Place Edit & Permanent Hard Delete)**
+   - **Edit Langsung (In-Place)**: Pembaruan transaksi, transfer saldo, dompet, dan anggaran dilakukan langsung pada baris data yang ada tanpa menghasilkan entri duplikasi atau perubahan ID.
+   - **Hapus Permanen Tanpa Coretan**: Menghilangkan seluruh konsep pembatalan semu (*void*) atau teks dicoret (*strikethrough*). Ketika data dihapus, data tersebut dihilangkan secara permanen dari SQLite lokal dan Supabase Cloud, serta saldo buku besar disinkronkan kembali secara otomatis.
+
 ---
 
 ## 📱 Navigasi & Tampilan Antarmuka (Apple HIG)
@@ -49,6 +53,7 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
   3. **Dompet**: Manajemen dompet/rekening (tunai, bank, e-wallet), saldo real-time, dan arsip dompet.
   4. **Profil**: Informasi akun pengguna, status sesi cloud aktif, preferensi keamanan, dan tombol keluar.
 - **Rute Khusus & Modal Cepat:**
+  - **Aksi Cepat (Quick Actions Modal `+`)**: Akses instan pencatatan pengeluaran, pemasukan, transfer saldo, anggaran bulanan, laporan keuangan, dan pemindai struk OCR. Didesain ramah layar sentuh dan dioptimalkan secara adaptif untuk browser seluler (termasuk Safari di iOS) dengan penanganan *isScrollControlled*, *useSafeArea*, dan *SingleChildScrollView* agar tidak terpotong oleh *floating address bar* atau *home indicator*.
   - **Laporan Keuangan**: Grafik arus kas bulanan, perbandingan periode, serta ekspor laporan ke format PDF dan CSV (dapat diakses langsung via AppBar Dashboard dan menu aksi cepat `+`).
   - **Anggaran Bulanan**: Manajemen batas pengeluaran per kategori dengan progres real-time.
   - **Pengaturan (Settings)**:
@@ -99,7 +104,13 @@ lib/
 - **Xcode** (untuk simulator iOS / macOS) atau **Android Studio**
 - Akun atau Proyek **Supabase** aktif
 
-### 1. Konfigurasi Lingkungan Supabase
+### 1. Klon Repositori
+```bash
+git clone https://github.com/febriezm/app-finance.git
+cd app-finance
+```
+
+### 2. Konfigurasi Lingkungan Supabase
 Aplikasi menggunakan environment configuration untuk URL dan Anon Key Supabase. Pastikan `supabase/migrations/` telah diaplikasikan pada proyek Supabase Anda:
 
 ```bash
@@ -119,12 +130,12 @@ supabase/migrations/
 └── 20261123180012_create_rpc_functions.sql
 ```
 
-### 2. Instalasi Dependensi
+### 3. Instalasi Dependensi
 ```bash
 flutter pub get
 ```
 
-### 3. Menjalankan Aplikasi
+### 4. Menjalankan Aplikasi
 ```bash
 # Menjalankan di perangkat / simulator (contoh: Chrome atau iOS)
 flutter run -d chrome
@@ -132,7 +143,7 @@ flutter run -d chrome
 flutter run -d iPhone
 ```
 
-### 4. Menjalankan Pratinjau Web Rilis
+### 5. Menjalankan Pratinjau Web Rilis
 ```bash
 # Build paket rilis web
 flutter build web --release
