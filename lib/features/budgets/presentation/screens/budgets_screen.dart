@@ -963,6 +963,47 @@ class _SetBudgetModalState extends ConsumerState<_SetBudgetModal> {
                     ),
                   ),
 
+                  if (widget.currentProgress.budget != null) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                        label: const Text(
+                          'Hapus Anggaran Bulan Ini',
+                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.red.withValues(alpha: 0.5), width: 0.8),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () async {
+                          final confirm = await MinimalDialog.showConfirm(
+                            context,
+                            title: 'Hapus Anggaran?',
+                            message: 'Batas anggaran bulan ini akan dihapus secara permanen.',
+                            confirmText: 'Ya, Hapus',
+                            isDestructive: true,
+                          );
+                          if (confirm == true) {
+                            final success = await ref
+                                .read(budgetsControllerProvider.notifier)
+                                .deleteBudget(widget.currentProgress.budget!.id);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              if (success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Anggaran berhasil dihapus.')),
+                                );
+                              }
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 20),
                 ],
               ),

@@ -72,6 +72,7 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
           .from('transactions')
           .select()
           .eq('user_id', userId)
+          .eq('status', 'confirmed')
           .order('occurred_at', ascending: false)
           .limit(limit);
 
@@ -93,6 +94,7 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
           .from('transactions')
           .select()
           .eq('user_id', userId)
+          .eq('status', 'confirmed')
           .or('wallet_id.eq.$walletId,destination_wallet_id.eq.$walletId')
           .order('occurred_at', ascending: false);
 
@@ -119,6 +121,7 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
           .from('transactions')
           .select()
           .eq('user_id', userId)
+          .eq('status', 'confirmed')
           .gte('occurred_at', startIsoUtc)
           .lte('occurred_at', endIsoUtc);
 

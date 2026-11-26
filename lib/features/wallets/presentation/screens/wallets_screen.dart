@@ -395,6 +395,54 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                  label: const Text(
+                    'Hapus Dompet',
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: BorderSide(
+                      color: Colors.red.withValues(alpha: 0.5),
+                      width: 0.8,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () async {
+                    unawaited(AppHaptics.selection());
+                    final confirm = await MinimalDialog.showConfirm(
+                      context,
+                      title: 'Hapus Dompet?',
+                      message: 'Dompet "${item.wallet.name}" akan dihapus secara permanen dari sistem.',
+                      confirmText: 'Ya, Hapus',
+                      isDestructive: true,
+                    );
+
+                    if (confirm == true) {
+                      final success = await ref.read(walletsControllerProvider.notifier).deleteWallet(item.wallet.id);
+                      ref.invalidate(walletsWithBalanceStreamProvider);
+                      ref.invalidate(archivedWalletsWithBalanceStreamProvider);
+                      ref.invalidate(totalAllAssetBalanceProvider);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Dompet "${item.wallet.name}" berhasil dihapus.')),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Gagal menghapus dompet.')),
+                          );
+                        }
+                      }
+                    }
+                  },
+                ),
+              ),
             ],
           ),
         ),

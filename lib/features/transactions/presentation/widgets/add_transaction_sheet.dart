@@ -9,6 +9,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/app_haptics.dart';
 import '../../../../shared/widgets/shared_widgets.dart';
 import '../../../categories/domain/entities/category.dart';
+import '../../../transfers/domain/entities/transfer.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/transaction_with_details.dart';
 
@@ -256,38 +257,68 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       notes = _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null;
     }
 
-    // Jika mengedit transaksi yang sudah ada, batalkan versi lama terlebih dahulu
-    if (widget.initialTransaction != null) {
-      if (widget.initialTransaction!.transaction.type == TransactionType.transfer) {
-        await ref.read(transferControllerProvider.notifier).voidTransfer(widget.initialTransaction!.transaction.id);
-      } else {
-        await ref.read(transactionsControllerProvider.notifier).voidTransaction(widget.initialTransaction!.transaction.id);
-      }
-    }
-
     final bool success;
-    if (_type == TransactionType.transfer) {
-      success = await ref.read(transferControllerProvider.notifier).createTransfer(
-            amount: _amount,
-            occurredAt: _occurredAt,
-            sourceWalletId: _selectedWalletId!,
-            destinationWalletId: destWalletId,
-            merchant: merchant,
-            description: description,
-            notes: notes,
-          );
+    if (widget.initialTransaction != null) {
+      // MODE EDIT: Perbarui data transaksi yang sudah ada secara langsung (in-place, tanpa void & tanpa duplikasi)
+      final existingTx = widget.initialTransaction!.transaction;
+      final nowIso = DateTime.now().toUtc().toIso8601String();
+
+      if (_type == TransactionType.transfer) {
+        final transferToUpdate = Transfer(
+          id: existingTx.id,
+          amount: _amount,
+          occurredAt: _occurredAt.toUtc().toIso8601String(),
+          sourceWalletId: _selectedWalletId!,
+          destinationWalletId: destWalletId,
+          merchant: merchant,
+          description: description,
+          notes: notes,
+          status: TransactionStatus.confirmed,
+          createdAt: existingTx.createdAt,
+          updatedAt: nowIso,
+        );
+        success = await ref.read(transferControllerProvider.notifier).updateTransfer(transferToUpdate);
+      } else {
+        final txToUpdate = existingTx.copyWith(
+          type: _type,
+          amount: _amount,
+          occurredAt: _occurredAt.toUtc().toIso8601String(),
+          walletId: _selectedWalletId!,
+          destinationWalletId: destWalletId,
+          categoryId: _selectedCategoryId,
+          merchant: merchant,
+          description: description,
+          notes: notes,
+          status: TransactionStatus.confirmed,
+          updatedAt: nowIso,
+        );
+        success = await ref.read(transactionsControllerProvider.notifier).updateTransaction(txToUpdate);
+      }
     } else {
-      success = await ref.read(transactionsControllerProvider.notifier).createTransaction(
-            type: _type,
-            amount: _amount,
-            occurredAt: _occurredAt,
-            walletId: _selectedWalletId!,
-            destinationWalletId: destWalletId,
-            categoryId: _selectedCategoryId,
-            merchant: merchant,
-            description: description,
-            notes: notes,
-          );
+      // MODE BARU: Tambah transaksi / transfer baru
+      if (_type == TransactionType.transfer) {
+        success = await ref.read(transferControllerProvider.notifier).createTransfer(
+              amount: _amount,
+              occurredAt: _occurredAt,
+              sourceWalletId: _selectedWalletId!,
+              destinationWalletId: destWalletId,
+              merchant: merchant,
+              description: description,
+              notes: notes,
+            );
+      } else {
+        success = await ref.read(transactionsControllerProvider.notifier).createTransaction(
+              type: _type,
+              amount: _amount,
+              occurredAt: _occurredAt,
+              walletId: _selectedWalletId!,
+              destinationWalletId: destWalletId,
+              categoryId: _selectedCategoryId,
+              merchant: merchant,
+              description: description,
+              notes: notes,
+            );
+      }
     }
 
     setState(() => _isLoading = false);

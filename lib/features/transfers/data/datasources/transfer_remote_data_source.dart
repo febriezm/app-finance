@@ -60,6 +60,7 @@ class TransferRemoteDataSourceImpl implements TransferRemoteDataSource {
           .select()
           .eq('user_id', userId)
           .eq('type', 'transfer')
+          .eq('status', 'confirmed')
           .order('occurred_at', ascending: false)
           .limit(limit);
 
@@ -103,6 +104,7 @@ class TransferRemoteDataSourceImpl implements TransferRemoteDataSource {
           .select()
           .eq('user_id', userId)
           .eq('type', 'transfer')
+          .eq('status', 'confirmed')
           .or('wallet_id.eq.$walletId,destination_wallet_id.eq.$walletId')
           .order('occurred_at', ascending: false);
 

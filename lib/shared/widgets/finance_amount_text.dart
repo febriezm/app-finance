@@ -81,7 +81,6 @@ class FinanceAmountText extends StatelessWidget {
 
     final effectiveStyle = (style ?? AppTypography.bodyBold).copyWith(
       color: textColor,
-      decoration: isVoided ? TextDecoration.lineThrough : null,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 

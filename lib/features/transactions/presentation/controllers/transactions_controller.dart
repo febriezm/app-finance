@@ -47,6 +47,30 @@ class TransactionsController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<bool> updateTransaction(Transaction transaction) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.updateTransaction(transaction);
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+
+  Future<bool> deleteTransaction(String id) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.deleteTransaction(id);
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+
   Future<bool> voidTransaction(String id) async {
     state = const AsyncValue.loading();
     try {

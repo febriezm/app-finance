@@ -167,7 +167,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     FinanceAmountText(
                       amount: tx.amount,
                       type: amountType,
-                      isVoided: isVoided,
+                      isVoided: false,
                       style: AppTypography.balanceMedium.copyWith(fontSize: 20),
                     ),
                   ],
@@ -289,12 +289,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       icon: Icon(
-                        Icons.cancel_outlined,
+                        Icons.delete_outline_rounded,
                         size: 18,
                         color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
                       ),
                       label: Text(
-                        'Batalkan Transaksi (Void)',
+                        'Hapus Transaksi',
                         style: TextStyle(
                           color: isDark ? AppColors.expenseDark : AppColors.expenseLight,
                           fontWeight: FontWeight.w600,
@@ -312,23 +312,30 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         unawaited(AppHaptics.selection());
                         final confirm = await MinimalDialog.showConfirm(
                           context,
-                          title: 'Batalkan Transaksi?',
-                          message: 'Transaksi ini akan ditandai "Voided" dan tidak akan lagi memengaruhi saldo dompet maupun laporan anggaran.',
-                          confirmText: 'Ya, Batalkan',
+                          title: 'Hapus Transaksi?',
+                          message: 'Transaksi ini akan dihapus secara permanen dari buku besar dan laporan keuangan Anda.',
+                          confirmText: 'Ya, Hapus',
                           isDestructive: true,
                         );
 
                         if (confirm == true) {
+                          final bool success;
                           if (tx.type == TransactionType.transfer) {
-                            await ref.read(transferControllerProvider.notifier).voidTransfer(tx.id);
+                            success = await ref.read(transferControllerProvider.notifier).deleteTransfer(tx.id);
                           } else {
-                            await ref.read(transactionsControllerProvider.notifier).voidTransaction(tx.id);
+                            success = await ref.read(transactionsControllerProvider.notifier).deleteTransaction(tx.id);
                           }
                           if (context.mounted) {
                             Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Transaksi berhasil dibatalkan.')),
-                            );
+                            if (success) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Transaksi berhasil dihapus.')),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Gagal menghapus transaksi.')),
+                              );
+                            }
                           }
                         }
                       },

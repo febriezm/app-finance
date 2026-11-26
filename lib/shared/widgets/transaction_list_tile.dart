@@ -92,10 +92,7 @@ class TransactionListTile extends StatelessWidget {
                       Text(
                         item.displayTitle,
                         style: AppTypography.bodyMedium.copyWith(
-                          color: isVoided
-                              ? (isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight)
-                              : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                          decoration: isVoided ? TextDecoration.lineThrough : null,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                           fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
@@ -103,7 +100,7 @@ class TransactionListTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        isVoided ? '$subtitleText • Dibatalkan' : subtitleText,
+                        subtitleText,
                         style: AppTypography.caption.copyWith(
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                         ),
@@ -119,7 +116,7 @@ class TransactionListTile extends StatelessWidget {
                 FinanceAmountText(
                   amount: tx.amount,
                   type: amountType,
-                  isVoided: isVoided,
+                  isVoided: false,
                   style: AppTypography.bodyBold.copyWith(fontSize: 15),
                 ),
               ],
