@@ -1,30 +1,60 @@
-# MyFinance — iOS Personal Local-First Finance App
+# MyFinance — Personal Finance App (Full Cloud Supabase PostgreSQL)
 
-**MyFinance** adalah aplikasi manajemen keuangan pribadi *local-first*, 100% *offline-only* untuk platform iOS (dan Flutter cross-platform), dirancang dengan standar **Apple Human Interface Guidelines (HIG)** dan Clean Architecture.
+**MyFinance** adalah aplikasi manajemen keuangan pribadi modern, minimalis, dan privat yang mematuhi standar **Apple Human Interface Guidelines (HIG)**, prinsip akuntansi buku besar berpresisi tinggi (Integer Rupiah), dan ditenagai oleh arsitektur **Full Cloud Supabase PostgreSQL** dengan isolasi ketat **Row Level Security (RLS)**.
 
-Seluruh data finansial tersimpan aman di sandbox lokal perangkat pengguna tanpa server backend, tanpa akun/login cloud, tanpa unggah jaringan, dan tanpa analitik pihak ketiga.
+Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpanan berkas struk privat (*Supabase Storage*), sinkronisasi data keuangan *multi-device*, serta perlindungan keamanan biometrik dan kode sandi PIN.
 
 ---
 
 ## 🏛️ Arsitektur & Prinsip Desain
 
-1. **Local-First & Offline-Only (Zero Cloud)**
-   - Menggunakan mesin basis data **SQLite** lokal via **Drift ORM**.
-   - Tidak ada transmisi data finansial atau foto struk keluar dari perangkat.
-2. **Akuntansi Berbasis Buku Besar (Double-Entry Ledger Principle)**
-   - Saldo dompet dihitung secara deterministik dari riwayat mutasi transaksi:
+1. **Full Cloud Supabase PostgreSQL Architecture**
+   - Basis data relasional terkelola menggunakan **Supabase PostgreSQL**.
+   - Setiap tabel data finansial (`wallets`, `categories`, `transactions`, `budgets`, `budget_category_limits`, `app_settings`, `transaction_attachments`) dilindungi secara mandatori oleh **Row Level Security (RLS)** berbasis `auth.uid() = user_id`.
+   - Menggunakan *Clean Architecture* dan *Riverpod State Management* dengan isolasi penuh antara UI, Controller/Notifier, Usecase, Repository, dan Remote DataSource.
+
+2. **Otentikasi & Manajemen Sesi Mandatori (Supabase Auth)**
+   - Akses aplikasi mewajibkan autentikasi akun (*Login*, *Daftar Akun Baru*, *Verifikasi Email*, dan *Pemulihan Kata Sandi*).
+   - Sesi login tersimpan secara persisten (*session persistence*) sehingga pengguna langsung masuk ke dashboard utama tanpa perlu login berulang saat membuka aplikasi.
+   - Saat keluar akun (*Sign Out*), seluruh cache kredensial lokal dan sesi keamanan dibersihkan secara bersih (*clean reset*).
+
+3. **Akuntansi Buku Besar Deterministik (Ledger Invariance)**
+   - Saldo setiap dompet dihitung secara matematis dan deterministik dari riwayat mutasi transaksi:
      $$\text{Saldo} = \text{Saldo Awal} + \text{Pemasukan} + \text{Transfer Masuk} - \text{Pengeluaran} - \text{Transfer Keluar}$$
-   - Transaksi internal transfer tidak mengubah total kekayaan/aset bersih maupun total income/expense.
-   - Semua nominal disimpan dalam satuan integer Rupiah (`int`), menghilangkan potensi *floating-point rounding error*.
-3. **Pemindai Struk On-Device (OCR + Parser)**
-   - Ekstraksi teks struk belanja diproses 100% di perangkat.
-   - Hasil OCR selalu masuk sebagai draft dan wajib ditinjau serta dikonfirmasi pengguna sebelum masuk ke buku besar.
-4. **Pencadangan & Pemulihan Tervalidasi (Schema v1)**
-   - Berkas cadangan berupa arsip JSON terstruktur dengan validasi integritas skema dan relasi Foreign Key SQLite.
-   - Pemulihan berjalan secara atomik menggunakan transaksi SQLite (`db.transaction`).
-5. **Keamanan Biometrik (Face ID / Touch ID / Passcode)**
-   - Dilindungi menggunakan `local_auth` yang terintegrasi dengan Apple Secure Enclave.
-   - Penguncian otomatis saat aplikasi masuk ke latar belakang (*background*).
+   - Transaksi transfer antar-dompet (*internal transfer*) tidak mengubah total kekayaan bersih (*total net worth*) maupun total pemasukan/pengeluaran.
+   - Seluruh nilai nominal mata uang disimpan dalam satuan integer Rupiah (`int`), menghilangkan potensi *rounding error* desimal (*Zero Rounding Error*).
+
+4. **Penyimpanan Struk Privat (Supabase Storage)**
+   - Berkas struk/bukti transaksi disimpan di *private bucket* Supabase Storage (`receipts`) dengan struktur direktori terisolasi per akun (`<user_id>/<filename>`).
+   - Akses unduh dan pratinjau struk menggunakan *signed URLs* dengan waktu kedaluwarsa terbatas (*time-limited token*).
+
+5. **Pemindai Struk On-Device (OCR + Parser)**
+   - Ekstraksi teks struk belanja diproses langsung di perangkat melalui *Optical Character Recognition (OCR)*.
+   - Hasil ekstraksi OCR masuk sebagai draf (*ReceiptDraft*) dan wajib dikonfirmasi pengguna sebelum masuk ke buku besar cloud.
+
+6. **Keamanan Berlapis (App Lock & Biometrik)**
+   - Perlindungan kode sandi PIN 6-digit dan biometrik (*Face ID / Touch ID / WebAuthn*).
+   - Status kunci terisolasi pada sesi akun aktif: saat logout atau berganti akun, status kunci akun sebelumnya otomatis di-reset.
+
+7. **Migrasi Data Lokal ke Cloud (Local-to-Cloud Migration)**
+   - Dilengkapi modul migrasi transaksional otomatis untuk memindahkan data pengguna lokal terdahulu (*SQLite*) ke *Supabase PostgreSQL Cloud* secara terverifikasi.
+
+---
+
+## 📱 Navigasi & Tampilan Antarmuka (Apple HIG)
+
+- **Tab Bar Navigasi Utama:**
+  1. **Home / Dashboard**: Ringkasan saldo bersih, total aset, mutasi terkini, dan pintasan cepat.
+  2. **Transaksi**: Riwayat pencatatan arus kas bulanan, filter transaksi, dan penambahan mutasi.
+  3. **Dompet**: Manajemen dompet/rekening (tunai, bank, e-wallet), saldo real-time, dan arsip dompet.
+  4. **Profil**: Informasi akun pengguna, status sesi cloud aktif, preferensi keamanan, dan tombol keluar.
+- **Rute Khusus & Modal Cepat:**
+  - **Laporan Keuangan**: Grafik arus kas bulanan, perbandingan periode, serta ekspor laporan ke format PDF dan CSV (dapat diakses langsung via AppBar Dashboard dan menu aksi cepat `+`).
+  - **Anggaran Bulanan**: Manajemen batas pengeluaran per kategori dengan progres real-time.
+  - **Pengaturan (Settings)**:
+    - *Tampilan & Tema*: Pemilihan tema Sistem, Terang, atau Gelap di urutan paling atas.
+    - *Umum*: Format Wilayah & Bahasa (id_ID), Awal Periode Laporan (Tgl 1), Mata Uang Utama (IDR Rupiah tabular figures), dan sheet reaktif Daftar Kategori.
+    - *Keamanan & Privasi*: Pengaturan Kunci Aplikasi PIN/Biometrik dan informasi privasi enkripsi TLS 1.3.
 
 ---
 
@@ -32,78 +62,127 @@ Seluruh data finansial tersimpan aman di sandbox lokal perangkat pengguna tanpa 
 
 ```text
 lib/
-├── app/                        # Bootstrapping aplikasi, Router (GoRouter), ProviderScope
+├── app/                        # Bootstrapping aplikasi, App Providers, Router (GoRouter), Shell
 ├── core/
-│   ├── constants/              # Konfigurasi konstanta global & nama aplikasi
-│   ├── database/               # Mesin Drift SQLite (AppDatabase, DAOs, Migrasi)
-│   ├── errors/                 # Domain Failures & Exceptions
-│   ├── formatting/             # Formatter Tanggal & Mata Uang Rupiah (CurrencyFormatter)
-│   ├── services/               # AppLockService (Biometrik lokal)
+│   ├── config/                 # Konfigurasi Supabase (URL, Anon Key, Enkripsi)
+│   ├── database/               # Drift SQLite lokal (Cache & Offline Support)
+│   ├── errors/                 # Domain Failures & Exceptions terstandarisasi
+│   ├── formatting/             # Formatter Tanggal & Integer Rupiah (CurrencyFormatter)
+│   ├── network/                # Supabase Service & Client Lifecycle
+│   ├── services/               # AppLockService (PIN & Biometrik)
 │   ├── theme/                  # Desain Token Apple HIG (Warna, Tipografi, Spacing, Tema)
 │   └── utils/                  # AppHaptics, FileExportHelper, FilePickerHelper
 ├── features/
-│   ├── wallets/                # Engine Saldo, CRUD Dompet, Status Arsip
-│   ├── categories/             # Manajemen Kategori Pemasukan & Pengeluaran
-│   ├── transactions/           # Pencatatan Transaksi (Income, Expense, Transfer) & Ledger
-│   ├── budgets/                # Anggaran Bulanan, Limit Kategori, Indikator Real-time
-│   ├── receipt_scanner/        # Pemindai Struk Belanja, On-Device OCR, Parser, Review
-│   ├── reports/                # Laporan Finansial, Perbandingan Bulan, Ekspor PDF & CSV
-│   ├── backup_restore/         # Ekspor & Impor Cadangan JSON, Validasi Atomik, Reset Data
-│   ├── security/               # Layar Kunci Biometrik (AppLockScreen, AppLockListener)
-│   └── settings/               # Pengaturan Tema (Sistem/Terang/Gelap), Kunci Biometrik
-└── shared/                     # Komponen UI Reusable (AppCard, LoadingIndicator, dsb.)
+│   ├── auth/                   # Supabase Auth: Login, Register, Forgot & Reset Password
+│   ├── wallets/                # Engine Saldo Cloud & Drift Cache, CRUD Dompet
+│   ├── categories/             # Manajemen Kategori Cloud Pemasukan & Pengeluaran
+│   ├── transactions/           # Buku Besar Cloud, Transaksi Pemasukan, Pengeluaran & Transfer
+│   ├── transfers/              # Transfer Antar-Dompet Cloud dengan Integritas Aset
+│   ├── budgets/                # Anggaran Bulanan Cloud, Limit Kategori, Indikator Real-time
+│   ├── receipt_scanner/        # Pemindai Struk, OCR, dan Supabase Storage Private Bucket
+│   ├── reports/                # Laporan Finansial Bulanan, Ekspor PDF & CSV
+│   ├── backup_restore/         # Cadangan & Pemulihan Cloud JSON terenkripsi
+│   ├── migration/              # Modul Migrasi Data Lokal SQLite ke Cloud Supabase
+│   ├── profile/                # Halaman Profil Pengguna Minimalis Apple HIG
+│   ├── security/               # Layar Kunci Biometrik & PIN (AppLockListener)
+│   └── settings/               # Pengaturan Tema, Format Regional, dan Kategori
+└── shared/                     # Komponen UI Reusable Minimalis (Buttons, TextFields, Cards)
 ```
 
 ---
 
-## 🚀 Cara Menjalankan Proyek
+## 🚀 Panduan Menjalankan Proyek
 
 ### Prasyarat
 - **Flutter SDK**: `>= 3.19.0` (Dart `>= 3.3.0`)
-- **Xcode** (untuk build iOS / Simulator)
+- **Git**
+- **Xcode** (untuk simulator iOS / macOS) atau **Android Studio**
+- Akun atau Proyek **Supabase** aktif
 
-### Menjalankan di Simulator iOS
+### 1. Konfigurasi Lingkungan Supabase
+Aplikasi menggunakan environment configuration untuk URL dan Anon Key Supabase. Pastikan `supabase/migrations/` telah diaplikasikan pada proyek Supabase Anda:
+
 ```bash
-# Ambil dependencies
+# Direktori migrasi basis data PostgreSQL:
+supabase/migrations/
+├── 20261123180001_create_extensions_and_utilities.sql
+├── 20261123180002_create_profiles_table.sql
+├── 20261123180003_create_wallets_table.sql
+├── 20261123180004_create_categories_table.sql
+├── 20261123180005_create_transactions_table.sql
+├── 20261123180006_create_transaction_attachments_table.sql
+├── 20261123180007_create_budgets_table.sql
+├── 20261123180008_create_budget_category_limits_table.sql
+├── 20261123180009_create_app_settings_table.sql
+├── 20261123180010_create_row_level_security_policies.sql
+├── 20261123180011_create_storage_bucket_and_policies.sql
+└── 20261123180012_create_rpc_functions.sql
+```
+
+### 2. Instalasi Dependensi
+```bash
 flutter pub get
+```
 
-# Jalankan kode generator Drift & Freezed jika diperlukan
-dart run build_runner build --delete-conflicting-outputs
-
-# Jalankan aplikasi di iOS Simulator
+### 3. Menjalankan Aplikasi
+```bash
+# Menjalankan di perangkat / simulator (contoh: Chrome atau iOS)
+flutter run -d chrome
+# atau
 flutter run -d iPhone
 ```
 
-### Menjalankan Pengujian Kualitas (Testing & Analysis)
+### 4. Menjalankan Pratinjau Web Rilis
 ```bash
-# Analisis kode statis (Harus 0 issues)
-flutter analyze
-
-# Menjalankan seluruh test suite (63 pengujian lulus)
-flutter test
-```
-
-### Pratinjau Web Lokal (Development Preview)
-```bash
-# Build paket web release
+# Build paket rilis web
 flutter build web --release
 
-# Jalankan server lokal
+# Jalankan server lokal untuk pratinjau
 python -m http.server 8085 --directory build/web
-# Akses di browser: http://localhost:8085
+
+# Buka pada browser:
+# http://localhost:8085
 ```
 
 ---
 
-## 🛡️ Hak Akses iOS (`Info.plist`)
-Aplikasi telah dikonfigurasi dengan deskripsi izin transparan berorientasi privasi:
-- `NSCameraUsageDescription`: *"MyFinance memerlukan akses kamera untuk memindai struk belanja secara offline."*
-- `NSPhotoLibraryUsageDescription`: *"MyFinance memerlukan akses galeri foto untuk memilih gambar struk belanja secara offline."*
-- `NSFaceIDUsageDescription`: *"MyFinance menggunakan Face ID untuk mengamankan data keuangan pribadi Anda."*
+## 🧪 Pengujian & Jaminan Kualitas
+
+Aplikasi dilengkapi suite pengujian otomatis komprehensif mencakup unit test arsitektur cloud, integritas buku besar, dan skenario interaksi widget:
+
+```bash
+# 1. Analisis statis kode (Harus 0 issues)
+flutter analyze
+
+# 2. Menjalankan seluruh pengujian unit domain & cloud repositories (207+ tests)
+flutter test test/unit/
+
+# 3. Menjalankan pengujian skenario aplikasi & navigasi auth
+flutter test test/widget/app_launch_test.dart
+```
+
+### Status Verifikasi Pengujian
+- **Static Analysis**: `flutter analyze` $\rightarrow$ **0 issues (Clean)**.
+- **Unit Test Suite**: **207 dari 207 tests passed (100%)**.
+- **Widget & Navigation Scenarios**: **6 dari 6 skenario lolos (100%)**.
+  - Alur pembukaan pertama kali $\rightarrow$ Login & Registrasi wajib.
+  - Sesi aktif $\rightarrow$ Langsung masuk ke Dashboard.
+  - Penataan menu Pengaturan (Tampilan paling atas, Umum gabung mata uang & kategori reaktif).
+  - Profil Pengguna mandiri pada Tab Bar.
+  - Navigasi bolak-balik Login $\leftrightarrow$ Register $\leftrightarrow$ Forgot Password.
+  - Isolasi AppLock dan pembersihan sesi saat Logout.
 
 ---
 
-## 📋 Hasil Pengujian & Verifikasi Phase 5 (100% Lulus)
-- **Unit & Integration Tests**: 63 dari 63 tests passed (100%).
-- **Acceptance Criteria Section 12**: Seluruh 10 kriteria lulus pengujian end-to-end (`test/integration/acceptance_criteria_mvp_test.dart`).
-- **Static Analysis**: `flutter analyze` $\rightarrow$ **0 issues**.
+## 🛡️ Keamanan & Privasi Data
+
+- **Row Level Security (RLS)**: Setiap kueri data ke Supabase dibatasi hanya untuk baris milik pengguna terautentikasi (`auth.uid()`). Upaya membaca atau mengubah data milik akun lain dicegah secara mutlak di tingkat mesin basis data.
+- **Enkripsi dalam Transit**: Seluruh komunikasi antara aplikasi dan Supabase Cloud diamankan dengan protokol **TLS 1.3**.
+- **Penyimpanan Struk Privat**: Bucket `receipts` berstatus privat; berkas hanya dapat diakses melalui *authenticated signed URL* berdurasi terbatas.
+- **Zero Sensitive Credential Leaks**: Kunci `service_role` tidak pernah disertakan di sisi klien Flutter; hanya menggunakan *Publishable Anon Key*.
+
+---
+
+## 📄 Lisensi
+
+Hak Cipta © 2026 MyFinance. Seluruh hak cipta dilindungi undang-undang.
