@@ -61,4 +61,19 @@ class AppSettingsDao extends DatabaseAccessor<AppDatabase> with _$AppSettingsDao
       return [];
     }
   }
+
+  /// Menghapus setting berdasarkan key
+  Future<int> deleteSetting(String key) async {
+    try {
+      return await (delete(appSettingsTable)..where((t) => t.key.equals(key))).go();
+    } catch (e) {
+      debugPrint('AppSettingsDao deleteSetting($key) notice: $e');
+      return 0;
+    }
+  }
+
+  /// Watch seluruh settings (Stream)
+  Stream<List<AppSettingEntry>> watchAllSettings() {
+    return select(appSettingsTable).watch();
+  }
 }

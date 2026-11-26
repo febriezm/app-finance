@@ -210,4 +210,25 @@ class AppDatabase extends _$AppDatabase {
       },
     );
   }
+
+  /// Membersihkan seluruh data transaksi, dompet, anggaran, dan kategori kustom pengguna saat logout atau ganti akun.
+  /// Kategori bawaan sistem (is_system == true) dan pengaturan aplikasi tetap dipertahankan.
+  Future<void> clearUserData() async {
+    await transaction(() async {
+      // 1. Hapus lampiran transaksi
+      await delete(transactionAttachmentsTable).go();
+      // 2. Hapus transaksi
+      await delete(transactionsTable).go();
+      // 3. Hapus batas kategori anggaran
+      await delete(budgetCategoryLimitsTable).go();
+      // 4. Hapus anggaran
+      await delete(budgetsTable).go();
+      // 5. Hapus dompet
+      await delete(walletsTable).go();
+      // 6. Hapus kategori kustom milik user (pertahankan kategori sistem)
+      await (delete(categoriesTable)..where((c) => c.isSystem.equals(false))).go();
+      // 7. Hapus pengaturan aplikasi lokal pengguna (kunci PIN, preferensi, dll)
+      await delete(appSettingsTable).go();
+    });
+  }
 }

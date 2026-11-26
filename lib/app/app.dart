@@ -20,7 +20,7 @@ class MyFinanceApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      routerConfig: AppRouter.router,
+      routerConfig: ref.watch(routerProvider),
       builder: (context, child) {
         final protectedChild = AppLockListener(
           child: child ?? const SizedBox.shrink(),

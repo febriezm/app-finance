@@ -42,6 +42,11 @@ class CategoriesDao extends DatabaseAccessor<AppDatabase> with _$CategoriesDaoMi
     return into(categoriesTable).insert(category);
   }
 
+  /// Insert atau replace kategori (digunakan saat sinkronisasi cache)
+  Future<int> insertOrReplaceCategory(CategoriesTableCompanion category) {
+    return into(categoriesTable).insertOnConflictUpdate(category);
+  }
+
   /// Update kategori
   Future<bool> updateCategory(CategoriesTableCompanion category) {
     return update(categoriesTable).replace(category);
@@ -52,5 +57,10 @@ class CategoriesDao extends DatabaseAccessor<AppDatabase> with _$CategoriesDaoMi
     return (update(categoriesTable)..where((t) => t.id.equals(id))).write(
       const CategoriesTableCompanion(isArchived: Value(true)),
     );
+  }
+
+  /// Hapus permanen kategori kustom
+  Future<int> deleteCategory(String id) {
+    return (delete(categoriesTable)..where((t) => t.id.equals(id))).go();
   }
 }

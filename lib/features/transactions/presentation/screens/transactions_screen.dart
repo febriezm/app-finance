@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/app_haptics.dart';
 import '../../../../shared/widgets/shared_widgets.dart';
+import '../../../receipt_scanner/domain/entities/receipt_metadata.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/transaction_with_details.dart';
 import '../widgets/add_transaction_sheet.dart';
@@ -35,6 +37,7 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   int _selectedFilterIndex = 0; // 0: Semua, 1: Pengeluaran, 2: Pemasukan, 3: Transfer
+  bool _isAllPeriod = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -223,6 +226,33 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   ),
                 ),
 
+                // Lampiran Struk Belanja (jika ada)
+                Consumer(
+                  builder: (context, ref, _) {
+                    final attachmentsAsync = ref.watch(
+                      receiptMetadataForTransactionStreamProvider(tx.id),
+                    );
+                    return attachmentsAsync.when(
+                      data: (attachments) {
+                        if (attachments.isEmpty) return const SizedBox.shrink();
+                        final attachment = attachments.first;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 14),
+                          child: _buildReceiptAttachmentTile(
+                            context,
+                            ref,
+                            attachment,
+                            isDark,
+                            borderColor,
+                          ),
+                        );
+                      },
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    );
+                  },
+                ),
+
                 const SizedBox(height: 20),
 
                 // Tombol Aksi Transaksi (Edit & Batalkan)
@@ -289,7 +319,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         );
 
                         if (confirm == true) {
-                          await ref.read(transactionsControllerProvider.notifier).voidTransaction(tx.id);
+                          if (tx.type == TransactionType.transfer) {
+                            await ref.read(transferControllerProvider.notifier).voidTransfer(tx.id);
+                          } else {
+                            await ref.read(transactionsControllerProvider.notifier).voidTransaction(tx.id);
+                          }
                           if (context.mounted) {
                             Navigator.of(context).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -369,6 +403,130 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
+  Widget _buildReceiptAttachmentTile(
+    BuildContext context,
+    WidgetRef ref,
+    ReceiptMetadata attachment,
+    bool isDark,
+    Color borderColor,
+  ) {
+    final sizeKb = (attachment.fileSize / 1024).toStringAsFixed(1);
+    final surfaceColor = isDark ? const Color(0xFF191919) : const Color(0xFFF9FAFB);
+
+    return InkWell(
+      onTap: () {
+        AppHaptics.selection();
+        _showReceiptPreviewModal(context, ref, attachment);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: 0.8),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: (isDark ? AppColors.incomeDark : AppColors.incomeLight).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.receipt_long_rounded,
+                size: 22,
+                color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Foto Struk Terlampir',
+                    style: AppTypography.bodyBold.copyWith(fontSize: 14),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$sizeKb KB • Ketuk untuk perbesar',
+                    style: AppTypography.caption.copyWith(
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.zoom_in_rounded,
+              size: 20,
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReceiptPreviewModal(
+    BuildContext context,
+    WidgetRef ref,
+    ReceiptMetadata attachment,
+  ) {
+    AppHaptics.light();
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.90),
+      builder: (ctx) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.white, size: 24),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+            title: const Text(
+              'Pratinjau Struk',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            centerTitle: true,
+          ),
+          body: Center(
+            child: FutureBuilder<Uint8List?>(
+              future: ref.read(receiptMetadataRepositoryProvider).getReceiptImageBytes(attachment.storagePath),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator(color: Colors.white);
+                }
+                final bytes = snapshot.data;
+                if (bytes == null || bytes.isEmpty) {
+                  return const Text(
+                    'Foto struk tidak tersedia',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  );
+                }
+                return InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 5.0,
+                  child: Image.memory(
+                    bytes,
+                    fit: BoxFit.contain,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -409,7 +567,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: MinimalMonthSelector(
               currentMonth: selectedMonth,
+              isAllPeriod: _isAllPeriod,
+              onToggleAllPeriod: () {
+                setState(() => _isAllPeriod = !_isAllPeriod);
+              },
               onMonthChanged: (newMonth) {
+                if (_isAllPeriod) {
+                  setState(() => _isAllPeriod = false);
+                }
                 ref.read(selectedTransactionMonthProvider.notifier).state = newMonth;
               },
             ),
@@ -421,11 +586,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               data: (allTransactions) {
                 final selectedMonthKey = AppDateFormatter.toMonthKey(selectedMonth);
 
-                // Hitung total pemasukan & pengeluaran terkonfirmasi di bulan yang dipilih
+                // Hitung total pemasukan & pengeluaran terkonfirmasi (per bulan terpilih atau semua periode)
                 final monthConfirmedTransactions = allTransactions.where((item) {
                   final localDt = AppDateFormatter.parseUtcToLocal(item.transaction.occurredAt);
-                  return AppDateFormatter.toMonthKey(localDt) == selectedMonthKey &&
-                      item.transaction.status == TransactionStatus.confirmed;
+                  final matchesMonth = _isAllPeriod || AppDateFormatter.toMonthKey(localDt) == selectedMonthKey;
+                  return matchesMonth && item.transaction.status == TransactionStatus.confirmed;
                 }).toList();
 
                 final monthIncome = monthConfirmedTransactions
@@ -436,13 +601,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     .where((t) => t.transaction.type == TransactionType.expense)
                     .fold<int>(0, (sum, t) => sum + t.transaction.amount);
 
-                // Filter berdasarkan bulan, filter kategori jenis, dan query pencarian
+                // Filter berdasarkan bulan (jika tidak dalam mode semua waktu), filter jenis, dan query pencarian
                 final filtered = allTransactions.where((item) {
                   final tx = item.transaction;
                   final localDt = AppDateFormatter.parseUtcToLocal(tx.occurredAt);
 
-                  // Filter bulan: jika ada pencarian teks aktif, cari lintas bulan; jika tidak, filter per bulan terpilih
-                  if (_searchQuery.trim().isEmpty && AppDateFormatter.toMonthKey(localDt) != selectedMonthKey) {
+                  // Filter bulan: jika mode semua periode aktif ATAU ada pencarian teks aktif, cari lintas bulan
+                  if (!_isAllPeriod && _searchQuery.trim().isEmpty && AppDateFormatter.toMonthKey(localDt) != selectedMonthKey) {
                     return false;
                   }
 
@@ -518,7 +683,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Pemasukan',
+                                      _isAllPeriod ? 'Pemasukan (Semua)' : 'Pemasukan',
                                       style: AppTypography.caption.copyWith(
                                         color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                                       ),
@@ -557,7 +722,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Pengeluaran',
+                                      _isAllPeriod ? 'Pengeluaran (Semua)' : 'Pengeluaran',
                                       style: AppTypography.caption.copyWith(
                                         color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                                       ),
@@ -619,7 +784,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       ),
                     ),
 
-                    // 2c. Filter Jenis Transaksi Segment
+                    // 2c. Filter Jenis Transaksi & Mode Periode Segment
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -632,6 +797,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           _buildFilterChip(2, 'Pemasukan', isDark, surfaceColor, borderColor),
                           const SizedBox(width: 8),
                           _buildFilterChip(3, 'Transfer', isDark, surfaceColor, borderColor),
+                          const SizedBox(width: 10),
+                          Container(width: 0.8, height: 20, color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
+                          const SizedBox(width: 10),
+                          _buildPeriodChip(isDark, surfaceColor, borderColor),
                         ],
                       ),
                     ),
@@ -669,8 +838,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               _searchQuery.isNotEmpty
                                   ? 'Tidak ditemukan transaksi yang cocok dengan "$_searchQuery".'
                                   : _selectedFilterIndex == 0
-                                      ? 'Belum ada transaksi tercatat pada ${AppDateFormatter.formatMonthYear(selectedMonth)}.'
-                                      : 'Tidak ada transaksi untuk filter ini pada ${AppDateFormatter.formatMonthYear(selectedMonth)}.',
+                                      ? (_isAllPeriod
+                                          ? 'Belum ada transaksi tercatat.'
+                                          : 'Belum ada transaksi tercatat pada ${AppDateFormatter.formatMonthYear(selectedMonth)}.')
+                                      : (_isAllPeriod
+                                          ? 'Tidak ada transaksi untuk filter ini.'
+                                          : 'Tidak ada transaksi untuk filter ini pada ${AppDateFormatter.formatMonthYear(selectedMonth)}.'),
                               textAlign: TextAlign.center,
                               style: AppTypography.caption.copyWith(
                                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -811,6 +984,54 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             color: isSelected ? activeFg : inactiveFg,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodChip(
+    bool isDark,
+    Color surfaceColor,
+    Color borderColor,
+  ) {
+    final activeBg = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final activeFg = isDark ? AppColors.backgroundDark : Colors.white;
+    final inactiveFg = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
+    return InkWell(
+      onTap: () {
+        AppHaptics.selection();
+        setState(() => _isAllPeriod = !_isAllPeriod);
+      },
+      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: _isAllPeriod ? activeBg : surfaceColor,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+          border: Border.all(
+            color: _isAllPeriod ? activeBg : borderColor,
+            width: 0.8,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _isAllPeriod ? Icons.all_inclusive_rounded : Icons.calendar_today_outlined,
+              size: 13,
+              color: _isAllPeriod ? activeFg : inactiveFg,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              _isAllPeriod ? 'Semua Waktu' : 'Per Bulan',
+              style: AppTypography.caption.copyWith(
+                fontWeight: _isAllPeriod ? FontWeight.w600 : FontWeight.w500,
+                color: _isAllPeriod ? activeFg : inactiveFg,
+              ),
+            ),
+          ],
         ),
       ),
     );

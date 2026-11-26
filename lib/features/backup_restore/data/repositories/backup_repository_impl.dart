@@ -1,22 +1,49 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import '../../../../core/database/app_database.dart';
+import '../../../../core/services/supabase_service.dart';
 import '../../domain/entities/backup_archive.dart';
 import '../../domain/entities/restore_validation_result.dart';
 import '../../domain/repositories/backup_repository.dart';
+import '../datasources/backup_remote_data_source.dart';
 import '../services/backup_validator_service.dart';
 
 class BackupRepositoryImpl implements BackupRepository {
   final AppDatabase _db;
   final BackupValidatorService _validatorService;
+  final BackupRemoteDataSource? _remoteDataSource;
+  final SupabaseService? _supabaseService;
 
   BackupRepositoryImpl(
     this._db, {
     BackupValidatorService validatorService = const BackupValidatorService(),
-  }) : _validatorService = validatorService;
+    BackupRemoteDataSource? remoteDataSource,
+    SupabaseService? supabaseService,
+  })  : _validatorService = validatorService,
+        _remoteDataSource = remoteDataSource,
+        _supabaseService = supabaseService;
+
+  bool get isCloudActive {
+    final svc = _supabaseService;
+    return svc != null && svc.isAuthenticated && _remoteDataSource != null && currentUserId != null;
+  }
+
+  String? get currentUserId => _supabaseService?.currentUser?.id;
 
   @override
   Future<BackupArchive> createBackup() async {
+    if (isCloudActive) {
+      try {
+        final cloudArchive = await _remoteDataSource!.fetchBackupArchive(currentUserId!);
+        return cloudArchive;
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[BackupRepositoryImpl] Cloud createBackup warning, fallback lokal: $e');
+        }
+      }
+    }
+
     final wallets = await _db.select(_db.walletsTable).get();
     final categories = await _db.select(_db.categoriesTable).get();
     final transactions = await _db.select(_db.transactionsTable).get();
@@ -39,6 +66,9 @@ class BackupRepositoryImpl implements BackupRepository {
   }
 
   @override
+  Future<BackupArchive> getBackupArchive() => createBackup();
+
+  @override
   Future<String> exportBackupJson() async {
     final archive = await createBackup();
     return const JsonEncoder.withIndent('  ').convert(archive.toJson());
@@ -58,9 +88,8 @@ class BackupRepositoryImpl implements BackupRepository {
 
     final archive = validation.archive!;
 
-    // Transaksional: Rollback otomatis jika ada query yang gagal
+    // 1. Transaksional SQLite Lokal: Rollback otomatis jika ada query yang gagal
     await _db.transaction(() async {
-      // 1. Kosongkan tabel dari child ke parent
       await _db.delete(_db.transactionAttachmentsTable).go();
       await _db.delete(_db.budgetCategoryLimitsTable).go();
       await _db.delete(_db.budgetsTable).go();
@@ -68,7 +97,6 @@ class BackupRepositoryImpl implements BackupRepository {
       await _db.delete(_db.categoriesTable).go();
       await _db.delete(_db.walletsTable).go();
 
-      // 2. Insert tabel dari parent ke child
       for (final w in archive.wallets) {
         await _db.into(_db.walletsTable).insert(
               WalletsTableCompanion(
@@ -107,7 +135,7 @@ class BackupRepositoryImpl implements BackupRepository {
               TransactionsTableCompanion(
                 id: Value(t['id'] as String),
                 type: Value(t['type'] as String),
-                amount: Value(t['amount'] as int),
+                amount: Value((t['amount'] ?? 0) as int),
                 occurredAt: Value((t['occurredAt'] ?? t['occurred_at'] ?? DateTime.now().toUtc().toIso8601String()) as String),
                 walletId: Value(t['walletId'] as String? ?? t['wallet_id'] as String?),
                 destinationWalletId: Value(t['destinationWalletId'] as String? ?? t['destination_wallet_id'] as String?),
@@ -128,7 +156,7 @@ class BackupRepositoryImpl implements BackupRepository {
               BudgetsTableCompanion(
                 id: Value(b['id'] as String),
                 monthKey: Value((b['monthKey'] ?? b['month_key']) as String),
-                totalLimit: Value((b['totalLimit'] ?? b['total_limit']) as int),
+                totalLimit: Value((b['totalLimit'] ?? b['total_limit'] ?? 0) as int),
                 createdAt: Value((b['createdAt'] ?? b['created_at'] ?? DateTime.now().toUtc().toIso8601String()) as String),
                 updatedAt: Value((b['updatedAt'] ?? b['updated_at'] ?? DateTime.now().toUtc().toIso8601String()) as String),
               ),
@@ -141,7 +169,7 @@ class BackupRepositoryImpl implements BackupRepository {
                 id: Value(l['id'] as String),
                 budgetId: Value((l['budgetId'] ?? l['budget_id']) as String),
                 categoryId: Value((l['categoryId'] ?? l['category_id']) as String),
-                limitAmount: Value((l['limitAmount'] ?? l['limit_amount']) as int),
+                limitAmount: Value((l['limitAmount'] ?? l['limit_amount'] ?? 0) as int),
               ),
             );
       }
@@ -151,7 +179,7 @@ class BackupRepositoryImpl implements BackupRepository {
               TransactionAttachmentsTableCompanion(
                 id: Value(a['id'] as String),
                 transactionId: Value((a['transactionId'] ?? a['transaction_id']) as String),
-                localPath: Value((a['localPath'] ?? a['local_path']) as String),
+                localPath: Value((a['localPath'] ?? a['local_path'] ?? a['storagePath'] ?? a['storage_path'] ?? '') as String),
                 mimeType: Value((a['mimeType'] ?? a['mime_type'] ?? 'image/jpeg') as String),
                 fileSize: Value((a['fileSize'] ?? a['file_size'] ?? 0) as int),
                 createdAt: Value((a['createdAt'] ?? a['created_at'] ?? DateTime.now().toUtc().toIso8601String()) as String),
@@ -159,10 +187,29 @@ class BackupRepositoryImpl implements BackupRepository {
             );
       }
     });
+
+    // 2. Sinkronkan pemulihan ke Supabase Cloud jika cloud aktif
+    if (isCloudActive) {
+      try {
+        await _remoteDataSource!.restoreBackupArchive(archive, currentUserId!);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[BackupRepositoryImpl] Cloud restore error: $e');
+        }
+        rethrow;
+      }
+    }
+  }
+
+  @override
+  Future<void> updateFromArchive(BackupArchive archive) async {
+    final jsonString = const JsonEncoder.withIndent('  ').convert(archive.toJson());
+    await restoreFromJson(jsonString);
   }
 
   @override
   Future<void> resetAllData() async {
+    // 1. Reset tabel lokal SQLite
     await _db.transaction(() async {
       await _db.delete(_db.transactionAttachmentsTable).go();
       await _db.delete(_db.budgetCategoryLimitsTable).go();
@@ -170,8 +217,92 @@ class BackupRepositoryImpl implements BackupRepository {
       await _db.delete(_db.transactionsTable).go();
       await _db.delete(_db.walletsTable).go();
 
-      // Reset custom categories, preserve or re-seed system categories
+      // Reset custom categories, pertahankan sistem
       await (_db.delete(_db.categoriesTable)..where((c) => c.isSystem.equals(false))).go();
     });
+
+    // 2. Reset cloud jika aktif
+    if (isCloudActive) {
+      try {
+        await _remoteDataSource!.resetUserData(currentUserId!);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[BackupRepositoryImpl] Cloud resetUserData error: $e');
+        }
+        rethrow;
+      }
+    }
+  }
+
+  @override
+  Future<Map<String, int>> getBackupRecordCounts() async {
+    if (isCloudActive) {
+      try {
+        return await _remoteDataSource!.fetchRecordCounts(currentUserId!);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[BackupRepositoryImpl] Cloud record counts warning, fallback lokal: $e');
+        }
+      }
+    }
+
+    final wallets = await _db.select(_db.walletsTable).get();
+    final categories = await _db.select(_db.categoriesTable).get();
+    final transactions = await _db.select(_db.transactionsTable).get();
+    final budgets = await _db.select(_db.budgetsTable).get();
+    final budgetLimits = await _db.select(_db.budgetCategoryLimitsTable).get();
+    final attachments = await _db.select(_db.transactionAttachmentsTable).get();
+
+    return {
+      'wallets': wallets.length,
+      'categories': categories.length,
+      'transactions': transactions.length,
+      'budgets': budgets.length,
+      'budgetCategoryLimits': budgetLimits.length,
+      'transactionAttachments': attachments.length,
+    };
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getBackupEntitiesByType(String entityType) async {
+    final archive = await createBackup();
+    switch (entityType.toLowerCase()) {
+      case 'wallets':
+      case 'wallet':
+        return archive.wallets;
+      case 'categories':
+      case 'category':
+        return archive.categories;
+      case 'transactions':
+      case 'transaction':
+        return archive.transactions;
+      case 'budgets':
+      case 'budget':
+        return archive.budgets;
+      case 'budgetcategorylimits':
+      case 'limits':
+        return archive.budgetCategoryLimits;
+      case 'transactionattachments':
+      case 'attachments':
+        return archive.transactionAttachments;
+      default:
+        return [];
+    }
+  }
+
+  @override
+  Future<int> getTotalRecordsCount() async {
+    final archive = await createBackup();
+    return archive.totalRecordsCount;
+  }
+
+  @override
+  int calculateArchiveTotalOpeningBalance(BackupArchive archive) {
+    int total = 0;
+    for (final w in archive.wallets) {
+      final bal = w['openingBalance'] ?? w['opening_balance'] ?? 0;
+      if (bal is int) total += bal;
+    }
+    return total;
   }
 }

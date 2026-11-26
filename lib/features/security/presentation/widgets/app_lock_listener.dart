@@ -42,9 +42,12 @@ class _AppLockListenerState extends ConsumerState<AppLockListener> with WidgetsB
 
   @override
   Widget build(BuildContext context) {
+    final authUser = ref.watch(authCurrentUserProvider);
     final lockState = ref.watch(appLockControllerProvider);
 
-    if (lockState.isAppLockEnabled && !lockState.isUnlocked) {
+    // Kunci aplikasi HANYA aktif saat pengguna telah terautentikasi (login).
+    // Jika sesi belum aktif atau telah logout, jangan tampilkan layar kunci agar pengguna dapat login.
+    if (authUser != null && lockState.isAppLockEnabled && !lockState.isUnlocked) {
       return const AppLockScreen();
     }
 

@@ -105,4 +105,17 @@ class WalletsController extends StateNotifier<AsyncValue<void>> {
       return false;
     }
   }
+
+  Future<bool> deleteWallet(String id) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.deleteWallet(id);
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e, st) {
+      debugPrint('Error deleting wallet: $e\n$st');
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
 }

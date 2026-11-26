@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/daos/app_settings_dao.dart';
 import '../../../../core/services/app_lock_service.dart';
+import '../../../settings/domain/repositories/settings_repository.dart';
 
 class AppLockState {
   final bool isAppLockEnabled;
@@ -58,21 +59,42 @@ class AppLockController extends StateNotifier<AppLockState> {
 
   final AppLockService _lockService;
   final AppSettingsDao? _appSettingsDao;
+  final SettingsRepository? _settingsRepository;
   DateTime? _pausedAt;
 
   AppLockController({
     required AppLockService lockService,
     AppSettingsDao? appSettingsDao,
+    SettingsRepository? settingsRepository,
     bool initialLockEnabled = false,
     bool initialHasPin = false,
   })  : _lockService = lockService,
         _appSettingsDao = appSettingsDao,
+        _settingsRepository = settingsRepository,
         super(AppLockState(
           isAppLockEnabled: initialLockEnabled,
           isUnlocked: !initialLockEnabled,
           hasPinSet: initialHasPin,
         )) {
     init();
+  }
+
+  Future<String?> _getSetting(String key) async {
+    if (_settingsRepository != null) {
+      return await _settingsRepository.getSetting(key);
+    }
+    if (_appSettingsDao != null) {
+      return await _appSettingsDao.getSetting(key);
+    }
+    return null;
+  }
+
+  Future<void> _setSetting(String key, String value) async {
+    if (_settingsRepository != null) {
+      await _settingsRepository.setSetting(key, value);
+    } else if (_appSettingsDao != null) {
+      await _appSettingsDao.setSetting(key, value);
+    }
   }
 
   Future<void> init() async {
@@ -84,20 +106,21 @@ class AppLockController extends StateNotifier<AppLockState> {
       String? pinHash;
       String? bioEnabledStr;
 
-      if (_appSettingsDao != null) {
+      if (_settingsRepository != null || _appSettingsDao != null) {
         try {
-          enabledStr = await _appSettingsDao.getSetting(keyAppLockEnabled);
-          pinHash = await _appSettingsDao.getSetting(keyAppLockPinHash);
-          bioEnabledStr = await _appSettingsDao.getSetting(keyAppLockBiometricsEnabled);
+          enabledStr = await _getSetting(keyAppLockEnabled);
+          pinHash = await _getSetting(keyAppLockPinHash);
+          bioEnabledStr = await _getSetting(keyAppLockBiometricsEnabled);
         } catch (e) {
           debugPrint('AppLockController: error reading settings: $e');
         }
       }
 
-      final isEnabled = _appSettingsDao != null
+      final hasStorage = _settingsRepository != null || _appSettingsDao != null;
+      final isEnabled = hasStorage
           ? (enabledStr == 'true')
           : state.isAppLockEnabled;
-      final hasPin = _appSettingsDao != null
+      final hasPin = hasStorage
           ? (pinHash != null && pinHash.isNotEmpty)
           : state.hasPinSet;
       final isBioEnabled = bioEnabledStr == 'true' || (bioAvailable && bioEnabledStr == null);
@@ -125,14 +148,12 @@ class AppLockController extends StateNotifier<AppLockState> {
     state = state.copyWith(isAuthenticating: true, errorMessage: null);
     final hash = AppLockService.hashPin(pin);
 
-    if (_appSettingsDao != null) {
-      await _appSettingsDao.setSetting(keyAppLockPinHash, hash);
-      await _appSettingsDao.setSetting(keyAppLockEnabled, 'true');
-      await _appSettingsDao.setSetting(
-        keyAppLockBiometricsEnabled,
-        enableBiometrics ? 'true' : 'false',
-      );
-    }
+    await _setSetting(keyAppLockPinHash, hash);
+    await _setSetting(keyAppLockEnabled, 'true');
+    await _setSetting(
+      keyAppLockBiometricsEnabled,
+      enableBiometrics ? 'true' : 'false',
+    );
 
     state = state.copyWith(
       isAppLockEnabled: true,
@@ -148,10 +169,7 @@ class AppLockController extends StateNotifier<AppLockState> {
 
   /// Membuka kunci menggunakan verifikasi PIN 6-digit
   Future<bool> unlockWithPin(String pin) async {
-    String? storedHash;
-    if (_appSettingsDao != null) {
-      storedHash = await _appSettingsDao.getSetting(keyAppLockPinHash);
-    }
+    final storedHash = await _getSetting(keyAppLockPinHash);
 
     // Jika belum ada hash di DB, periksa state hasPinSet
     if (storedHash == null) {
@@ -230,19 +248,14 @@ class AppLockController extends StateNotifier<AppLockState> {
 
   /// Menonaktifkan Kunci Aplikasi setelah verifikasi PIN yang benar
   Future<bool> disableAppLock(String pin) async {
-    String? storedHash;
-    if (_appSettingsDao != null) {
-      storedHash = await _appSettingsDao.getSetting(keyAppLockPinHash);
-    }
+    final storedHash = await _getSetting(keyAppLockPinHash);
 
     if (storedHash != null && !AppLockService.verifyPin(pin, storedHash)) {
       state = state.copyWith(errorMessage: 'Kode sandi salah.');
       return false;
     }
 
-    if (_appSettingsDao != null) {
-      await _appSettingsDao.setSetting(keyAppLockEnabled, 'false');
-    }
+    await _setSetting(keyAppLockEnabled, 'false');
 
     state = state.copyWith(
       isAppLockEnabled: false,
@@ -254,10 +267,7 @@ class AppLockController extends StateNotifier<AppLockState> {
 
   /// Mengubah PIN setelah verifikasi PIN lama
   Future<bool> changePin({required String oldPin, required String newPin}) async {
-    String? storedHash;
-    if (_appSettingsDao != null) {
-      storedHash = await _appSettingsDao.getSetting(keyAppLockPinHash);
-    }
+    final storedHash = await _getSetting(keyAppLockPinHash);
 
     if (storedHash != null && !AppLockService.verifyPin(oldPin, storedHash)) {
       state = state.copyWith(errorMessage: 'Kode sandi lama salah.');
@@ -270,9 +280,7 @@ class AppLockController extends StateNotifier<AppLockState> {
     }
 
     final newHash = AppLockService.hashPin(newPin);
-    if (_appSettingsDao != null) {
-      await _appSettingsDao.setSetting(keyAppLockPinHash, newHash);
-    }
+    await _setSetting(keyAppLockPinHash, newHash);
 
     state = state.copyWith(errorMessage: null);
     return true;
@@ -280,12 +288,10 @@ class AppLockController extends StateNotifier<AppLockState> {
 
   /// Toggle biometrik on/off
   Future<void> setBiometricsEnabled(bool enable) async {
-    if (_appSettingsDao != null) {
-      await _appSettingsDao.setSetting(
-        keyAppLockBiometricsEnabled,
-        enable ? 'true' : 'false',
-      );
-    }
+    await _setSetting(
+      keyAppLockBiometricsEnabled,
+      enable ? 'true' : 'false',
+    );
     state = state.copyWith(isBiometricsEnabled: enable);
   }
 
@@ -316,12 +322,24 @@ class AppLockController extends StateNotifier<AppLockState> {
     }
   }
 
+  /// Reset seluruh state kunci saat pengguna keluar (logout) atau berganti akun
+  void reset() {
+    state = const AppLockState(
+      isAppLockEnabled: false,
+      isUnlocked: true,
+      hasPinSet: false,
+      isBiometricsAvailable: false,
+      isBiometricsEnabled: false,
+      isAuthenticating: false,
+      errorMessage: null,
+      failedPinAttempts: 0,
+    );
+  }
+
   /// Kompatibilitas mundur dengan toggleAppLock lama
   Future<bool> toggleAppLock(bool enable) async {
     if (!enable) {
-      if (_appSettingsDao != null) {
-        await _appSettingsDao.setSetting(keyAppLockEnabled, 'false');
-      }
+      await _setSetting(keyAppLockEnabled, 'false');
       state = state.copyWith(isAppLockEnabled: false, isUnlocked: true);
       return true;
     }

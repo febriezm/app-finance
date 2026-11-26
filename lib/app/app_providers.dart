@@ -10,31 +10,46 @@ import '../core/formatting/date_formatter.dart';
 
 import '../features/wallets/domain/entities/wallet.dart';
 import '../features/wallets/domain/repositories/wallet_repository.dart';
+import '../features/wallets/data/datasources/wallet_remote_data_source.dart';
 import '../features/wallets/data/repositories/wallet_repository_impl.dart';
 import '../features/wallets/presentation/controllers/wallets_controller.dart';
 
 import '../features/categories/domain/entities/category.dart';
 import '../features/categories/domain/repositories/category_repository.dart';
+import '../features/categories/data/datasources/category_remote_data_source.dart';
 import '../features/categories/data/repositories/category_repository_impl.dart';
 
 import '../features/transactions/domain/entities/transaction_with_details.dart';
 import '../features/transactions/domain/repositories/transaction_repository.dart';
+import '../features/transactions/data/datasources/transaction_remote_data_source.dart';
 import '../features/transactions/data/repositories/transaction_repository_impl.dart';
 import '../features/transactions/presentation/controllers/transactions_controller.dart';
 
+import '../features/transfers/domain/entities/transfer.dart';
+import '../features/transfers/domain/repositories/transfer_repository.dart';
+import '../features/transfers/data/datasources/transfer_remote_data_source.dart';
+import '../features/transfers/data/repositories/transfer_repository_impl.dart';
+import '../features/transfers/presentation/controllers/transfer_controller.dart';
+
 import '../features/budgets/domain/entities/budget.dart';
 import '../features/budgets/domain/repositories/budget_repository.dart';
+import '../features/budgets/data/datasources/budget_remote_data_source.dart';
 import '../features/budgets/data/repositories/budget_repository_impl.dart';
 import '../features/budgets/presentation/controllers/budgets_controller.dart';
 
 import '../features/reports/domain/entities/monthly_report.dart';
 import '../features/reports/domain/repositories/report_repository.dart';
+import '../features/reports/data/datasources/report_remote_data_source.dart';
 import '../features/reports/data/repositories/report_repository_impl.dart';
 import '../features/reports/domain/usecases/get_monthly_report_usecase.dart';
 import '../features/reports/domain/usecases/export_report_csv_usecase.dart';
 import '../features/reports/domain/usecases/export_report_pdf_usecase.dart';
 
 import '../features/receipt_scanner/domain/entities/receipt_draft.dart';
+import '../features/receipt_scanner/domain/entities/receipt_metadata.dart';
+import '../features/receipt_scanner/domain/repositories/receipt_metadata_repository.dart';
+import '../features/receipt_scanner/data/datasources/receipt_metadata_remote_data_source.dart';
+import '../features/receipt_scanner/data/repositories/receipt_metadata_repository_impl.dart';
 import '../features/receipt_scanner/domain/repositories/receipt_ocr_service.dart';
 import '../features/receipt_scanner/domain/repositories/receipt_understanding_service.dart';
 import '../features/receipt_scanner/data/services/receipt_ocr_service_impl.dart';
@@ -44,7 +59,13 @@ import '../features/receipt_scanner/domain/usecases/scan_receipt_usecase.dart';
 import '../features/receipt_scanner/domain/usecases/confirm_receipt_transaction_usecase.dart';
 import '../features/receipt_scanner/presentation/controllers/receipt_scanner_controller.dart';
 
+import '../features/settings/domain/entities/app_setting.dart';
+import '../features/settings/domain/repositories/settings_repository.dart';
+import '../features/settings/data/datasources/settings_remote_data_source.dart';
+import '../features/settings/data/repositories/settings_repository_impl.dart';
+
 import '../features/backup_restore/domain/repositories/backup_repository.dart';
+import '../features/backup_restore/data/datasources/backup_remote_data_source.dart';
 import '../features/backup_restore/data/repositories/backup_repository_impl.dart';
 import '../features/backup_restore/data/services/backup_validator_service.dart';
 import '../features/backup_restore/domain/usecases/create_backup_usecase.dart';
@@ -56,6 +77,14 @@ import '../core/services/app_lock_service.dart';
 import '../core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sp;
 import '../features/security/presentation/controllers/app_lock_controller.dart';
+import '../features/auth/domain/entities/auth_user.dart';
+import '../features/auth/domain/repositories/auth_repository.dart';
+import '../features/auth/data/repositories/auth_repository_impl.dart';
+import '../features/auth/presentation/controllers/auth_controller.dart';
+import '../features/migration/domain/repositories/migration_repository.dart';
+import '../features/migration/data/datasources/migration_remote_data_source.dart';
+import '../features/migration/data/repositories/migration_repository_impl.dart';
+import '../features/migration/presentation/controllers/migration_controller.dart';
 
 /// App Theme Provider
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
@@ -94,29 +123,121 @@ final appSettingsDaoProvider = Provider<AppSettingsDao>((ref) {
 });
 
 // Repositories
+final walletRemoteDataSourceProvider = Provider<WalletRemoteDataSource>((ref) {
+  return WalletRemoteDataSourceImpl(
+    supabaseService: ref.watch(supabaseServiceProvider),
+  );
+});
+
 final walletRepositoryProvider = Provider<WalletRepository>((ref) {
   final dao = ref.watch(walletsDaoProvider);
   final txDao = ref.watch(transactionsDaoProvider);
-  return WalletRepositoryImpl(dao, txDao);
+  final remoteDataSource = ref.watch(walletRemoteDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return WalletRepositoryImpl(
+    dao,
+    txDao,
+    remoteDataSource: remoteDataSource,
+    supabaseService: supabaseService,
+  );
+});
+
+final categoryRemoteDataSourceProvider = Provider<CategoryRemoteDataSource>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return CategoryRemoteDataSourceImpl(supabaseService: supabaseService);
 });
 
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
   final dao = ref.watch(categoriesDaoProvider);
-  return CategoryRepositoryImpl(dao);
+  final txDao = ref.watch(transactionsDaoProvider);
+  final remoteDataSource = ref.watch(categoryRemoteDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return CategoryRepositoryImpl(
+    dao,
+    transactionsDao: txDao,
+    remoteDataSource: remoteDataSource,
+    supabaseService: supabaseService,
+  );
+});
+
+final transactionRemoteDataSourceProvider = Provider<TransactionRemoteDataSource>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return TransactionRemoteDataSourceImpl(supabaseService: supabaseService);
 });
 
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
   final txDao = ref.watch(transactionsDaoProvider);
   final walletDao = ref.watch(walletsDaoProvider);
   final catDao = ref.watch(categoriesDaoProvider);
-  return TransactionRepositoryImpl(txDao, walletDao, catDao);
+  final remoteDataSource = ref.watch(transactionRemoteDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return TransactionRepositoryImpl(
+    txDao,
+    walletDao,
+    catDao,
+    remoteDataSource: remoteDataSource,
+    supabaseService: supabaseService,
+  );
+});
+
+final transferRemoteDataSourceProvider = Provider<TransferRemoteDataSource>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return TransferRemoteDataSourceImpl(supabaseService: supabaseService);
+});
+
+final transferRepositoryProvider = Provider<TransferRepository>((ref) {
+  final txDao = ref.watch(transactionsDaoProvider);
+  final walletDao = ref.watch(walletsDaoProvider);
+  final remoteDataSource = ref.watch(transferRemoteDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return TransferRepositoryImpl(
+    txDao,
+    walletDao,
+    remoteDataSource: remoteDataSource,
+    supabaseService: supabaseService,
+  );
+});
+
+final transferControllerProvider =
+    StateNotifierProvider<TransferController, AsyncValue<void>>((ref) {
+  final repo = ref.watch(transferRepositoryProvider);
+  return TransferController(repo);
+});
+
+final transfersStreamProvider = StreamProvider<List<Transfer>>((ref) {
+  final repo = ref.watch(transferRepositoryProvider);
+  return repo.watchTransfers(limit: 100);
+});
+
+final transfersForWalletStreamProvider =
+    StreamProvider.family<List<Transfer>, String>((ref, walletId) {
+  final repo = ref.watch(transferRepositoryProvider);
+  return repo.watchTransfersForWallet(walletId);
+});
+
+final budgetRemoteDataSourceProvider = Provider<BudgetRemoteDataSource>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return BudgetRemoteDataSourceImpl(supabaseService: supabaseService);
 });
 
 final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
   final budgetsDao = ref.watch(budgetsDaoProvider);
   final txDao = ref.watch(transactionsDaoProvider);
   final catDao = ref.watch(categoriesDaoProvider);
-  return BudgetRepositoryImpl(budgetsDao, txDao, catDao);
+  final remoteDataSource = ref.watch(budgetRemoteDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return BudgetRepositoryImpl(
+    budgetsDao,
+    txDao,
+    catDao,
+    remoteDataSource: remoteDataSource,
+    supabaseService: supabaseService,
+  );
+});
+
+final allBudgetsStreamProvider = StreamProvider<List<Budget>>((ref) {
+  final repo = ref.watch(budgetRepositoryProvider);
+  return repo.watchAllBudgets();
 });
 
 // Reactive Streams for Wallets
@@ -166,7 +287,7 @@ final totalAssetBalanceProvider = netOperationalBalanceProvider;
 // Reactive Streams for Transactions
 final recentTransactionsStreamProvider = StreamProvider<List<TransactionWithDetails>>((ref) {
   final repo = ref.watch(transactionRepositoryProvider);
-  return repo.watchRecentTransactions(limit: 100);
+  return repo.watchRecentTransactions(limit: 250);
 });
 
 /// Bulan yang dipilih pada Tab Riwayat Transaksi (format: DateTime(year, month, 1))
@@ -217,13 +338,30 @@ final selectedReportMonthProvider = StateProvider<String>((ref) {
   return AppDateFormatter.toMonthKey(DateTime.now());
 });
 
+final reportRemoteDataSourceProvider = Provider<ReportRemoteDataSource?>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  if (supabaseService.clientOrNull == null) return null;
+  return ReportRemoteDataSourceImpl(
+    supabaseService: supabaseService,
+  );
+});
+
 final reportRepositoryProvider = Provider<ReportRepository>((ref) {
   final txRepo = ref.watch(transactionRepositoryProvider);
   final walletRepo = ref.watch(walletRepositoryProvider);
+  final remoteDataSource = ref.watch(reportRemoteDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
   return ReportRepositoryImpl(
     transactionRepository: txRepo,
     walletRepository: walletRepo,
+    remoteDataSource: remoteDataSource,
+    supabaseService: supabaseService,
   );
+});
+
+final availableReportMonthsProvider = FutureProvider<List<String>>((ref) async {
+  final repo = ref.watch(reportRepositoryProvider);
+  return repo.getAvailableReportMonths();
 });
 
 final getMonthlyReportUseCaseProvider = Provider<GetMonthlyReportUseCase>((ref) {
@@ -270,9 +408,40 @@ final receiptUnderstandingServiceProvider = Provider<ReceiptUnderstandingService
   return const LocalReceiptParser();
 });
 
+final receiptMetadataRemoteDataSourceProvider = Provider<ReceiptMetadataRemoteDataSource?>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  if (supabaseService.clientOrNull == null) return null;
+  return ReceiptMetadataRemoteDataSourceImpl(
+    supabaseService: supabaseService,
+  );
+});
+
+final receiptMetadataRepositoryProvider = Provider<ReceiptMetadataRepository>((ref) {
+  final dao = ref.watch(transactionsDaoProvider);
+  final remoteDataSource = ref.watch(receiptMetadataRemoteDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return ReceiptMetadataRepositoryImpl(
+    dao,
+    remoteDataSource: remoteDataSource,
+    supabaseService: supabaseService,
+  );
+});
+
+final receiptMetadataForTransactionStreamProvider =
+    StreamProvider.family<List<ReceiptMetadata>, String>((ref, transactionId) {
+  final repo = ref.watch(receiptMetadataRepositoryProvider);
+  return repo.watchReceiptMetadataForTransaction(transactionId);
+});
+
+final totalReceiptStorageBytesProvider = FutureProvider<int>((ref) async {
+  final repo = ref.watch(receiptMetadataRepositoryProvider);
+  return repo.getTotalReceiptStorageBytes();
+});
+
 final attachmentStorageServiceProvider = Provider<AttachmentStorageService>((ref) {
   final dao = ref.watch(transactionsDaoProvider);
-  return AttachmentStorageService(dao);
+  final repo = ref.watch(receiptMetadataRepositoryProvider);
+  return AttachmentStorageService(dao, metadataRepository: repo);
 });
 
 final scanReceiptUseCaseProvider = Provider<ScanReceiptUseCase>((ref) {
@@ -301,10 +470,23 @@ final backupValidatorServiceProvider = Provider<BackupValidatorService>((ref) {
   return const BackupValidatorService();
 });
 
+final backupRemoteDataSourceProvider = Provider<BackupRemoteDataSource?>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  if (supabaseService.clientOrNull == null) return null;
+  return BackupRemoteDataSourceImpl(supabaseService: supabaseService);
+});
+
 final backupRepositoryProvider = Provider<BackupRepository>((ref) {
   final db = ref.watch(databaseProvider);
   final validator = ref.watch(backupValidatorServiceProvider);
-  return BackupRepositoryImpl(db, validatorService: validator);
+  final remoteDataSource = ref.watch(backupRemoteDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return BackupRepositoryImpl(
+    db,
+    validatorService: validator,
+    remoteDataSource: remoteDataSource,
+    supabaseService: supabaseService,
+  );
 });
 
 final createBackupUseCaseProvider = Provider<CreateBackupUseCase>((ref) {
@@ -333,6 +515,35 @@ final backupRestoreControllerProvider = StateNotifierProvider.autoDispose<Backup
   );
 });
 
+final settingsRemoteDataSourceProvider = Provider<SettingsRemoteDataSource?>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  if (supabaseService.clientOrNull == null) return null;
+  return SettingsRemoteDataSourceImpl(
+    supabaseService: supabaseService,
+  );
+});
+
+final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
+  final dao = ref.watch(appSettingsDaoProvider);
+  final remoteDataSource = ref.watch(settingsRemoteDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return SettingsRepositoryImpl(
+    dao,
+    remoteDataSource: remoteDataSource,
+    supabaseService: supabaseService,
+  );
+});
+
+final appSettingStreamProvider = StreamProvider.family<String?, String>((ref, key) {
+  final repo = ref.watch(settingsRepositoryProvider);
+  return repo.watchSetting(key);
+});
+
+final allSettingsStreamProvider = StreamProvider<List<AppSetting>>((ref) {
+  final repo = ref.watch(settingsRepositoryProvider);
+  return repo.watchAllSettings();
+});
+
 // App Lock & Biometrics
 final appLockServiceProvider = Provider<AppLockService>((ref) {
   return AppLockService();
@@ -342,6 +553,7 @@ final appLockControllerProvider = StateNotifierProvider<AppLockController, AppLo
   return AppLockController(
     lockService: ref.watch(appLockServiceProvider),
     appSettingsDao: ref.watch(appSettingsDaoProvider),
+    settingsRepository: ref.watch(settingsRepositoryProvider),
   );
 });
 
@@ -373,4 +585,57 @@ final supabaseCurrentUserProvider = Provider<sp.User?>((ref) {
 final supabaseConnectionStatusProvider = FutureProvider<SupabaseConnectionResult>((ref) {
   final service = ref.watch(supabaseServiceProvider);
   return service.checkConnection();
+});
+
+// ============================================================================
+// Supabase Authentication Providers
+// ============================================================================
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepositoryImpl(
+    supabaseService: ref.watch(supabaseServiceProvider),
+  );
+});
+
+final authControllerProvider = StateNotifierProvider<AuthController, AuthState>((ref) {
+  return AuthController(
+    authRepository: ref.watch(authRepositoryProvider),
+    appDatabase: ref.watch(databaseProvider),
+    ref: ref,
+  );
+});
+
+final authCurrentUserProvider = Provider<AuthUser?>((ref) {
+  return ref.watch(authControllerProvider).user;
+});
+
+final authStateChangesProvider = StreamProvider<AuthUser?>((ref) {
+  return ref.watch(authRepositoryProvider).authStateChanges;
+});
+
+// ============================================================================
+// Data Migration Providers (SQLite to Supabase Cloud)
+// ============================================================================
+final migrationRemoteDataSourceProvider = Provider<MigrationRemoteDataSource?>((ref) {
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  if (supabaseService.clientOrNull == null) return null;
+  return MigrationRemoteDataSourceImpl(supabaseService: supabaseService);
+});
+
+final migrationRepositoryProvider = Provider<MigrationRepository>((ref) {
+  final db = ref.watch(databaseProvider);
+  final appSettingsDao = ref.watch(appSettingsDaoProvider);
+  final remoteDataSource = ref.watch(migrationRemoteDataSourceProvider);
+  final supabaseService = ref.watch(supabaseServiceProvider);
+  return MigrationRepositoryImpl(
+    db: db,
+    appSettingsDao: appSettingsDao,
+    remoteDataSource: remoteDataSource,
+    supabaseService: supabaseService,
+  );
+});
+
+final migrationControllerProvider =
+    StateNotifierProvider<MigrationController, MigrationState>((ref) {
+  final repo = ref.watch(migrationRepositoryProvider);
+  return MigrationController(repo, ref);
 });

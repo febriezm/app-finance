@@ -24,4 +24,16 @@ abstract interface class ReportRepository {
     MonthlyReport report,
     List<TransactionWithDetails> transactions,
   );
+
+  /// Mengambil daftar bulan-bulan yang memiliki riwayat transaksi
+  Future<List<String>> getAvailableReportMonths();
+
+  /// Memperbarui atau merefresh laporan bulanan
+  Future<MonthlyReport> refreshReport(String monthKey);
+
+  /// Membersihkan cache laporan (spesifik bulan atau seluruhnya)
+  Future<void> clearReportCache({String? monthKey});
+
+  /// Membuat atau menyinkronkan laporan bulanan
+  Future<MonthlyReport> createOrGenerateReport(String monthKey);
 }

@@ -134,6 +134,21 @@ class ScaffoldWithNavBar extends StatelessWidget {
                 ),
                 Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
 
+                // Laporan Keuangan
+                _buildActionTile(
+                  context,
+                  isDark: isDark,
+                  icon: Icons.bar_chart_rounded,
+                  iconColor: Colors.blueAccent,
+                  title: 'Laporan Keuangan',
+                  subtitle: 'Analisis arus kas & ekspor laporan PDF/CSV',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push(AppRouter.reports);
+                  },
+                ),
+                Divider(height: 1, thickness: 0.6, indent: 64, color: dividerColor),
+
                 // Scan Struk (OCR)
                 _buildActionTile(
                   context,
@@ -273,9 +288,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
               label: 'Dompet',
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart_outlined),
-              activeIcon: Icon(Icons.bar_chart_rounded),
-              label: 'Laporan',
+              icon: Icon(Icons.person_outline_rounded),
+              activeIcon: Icon(Icons.person_rounded),
+              label: 'Profil',
             ),
           ],
         ),

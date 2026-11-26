@@ -30,3 +30,7 @@ class SupabaseConnectionException extends SupabaseException {
 class SupabaseAuthException extends SupabaseException {
   const SupabaseAuthException([super.message = 'Terjadi kesalahan otentikasi Supabase.', super.code]);
 }
+
+class SupabaseDatabaseException extends SupabaseException {
+  const SupabaseDatabaseException([super.message = 'Terjadi kesalahan pada Supabase PostgreSQL.', super.code]);
+}

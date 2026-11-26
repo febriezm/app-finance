@@ -5,16 +5,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:myfinance/app/app.dart';
 import 'package:myfinance/app/app_providers.dart';
 import 'package:myfinance/core/database/app_database.dart';
+import 'package:myfinance/features/auth/domain/entities/auth_user.dart';
+import '../unit/auth_test.dart';
 
 void main() {
   testWidgets('Phase 1 Integration: Add Wallets, Record Expense & verify ledger balance updates',
       (tester) async {
     final inMemoryDb = AppDatabase(NativeDatabase.memory());
+    final loggedInUser = AuthUser(
+      id: 'test-user-phase1',
+      email: 'tester@myfinance.com',
+      createdAt: DateTime(2026, 1, 1),
+      emailConfirmedAt: DateTime(2026, 1, 1),
+    );
+    final fakeAuth = FakeAuthRepository(initialUser: loggedInUser);
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(inMemoryDb),
+          authRepositoryProvider.overrideWithValue(fakeAuth),
         ],
         child: const MyFinanceApp(),
       ),

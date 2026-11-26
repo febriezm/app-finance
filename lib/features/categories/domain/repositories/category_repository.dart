@@ -21,4 +21,14 @@ abstract class CategoryRepository {
 
   /// Mengarsipkan kategori kustom (kategori sistem dilarang diarsip)
   Future<void> archiveCategory(String id);
+
+  /// Menghapus permanen kategori kustom (kategori sistem dilarang dihapus)
+  Future<void> deleteCategory(String id);
+
+  /// Menghitung total mutasi/spending terkonfirmasi untuk kategori ini
+  Future<int> calculateCategorySpending(
+    String categoryId, {
+    String? startIsoUtc,
+    String? endIsoUtc,
+  });
 }

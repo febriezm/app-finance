@@ -38,3 +38,7 @@ class SupabaseConnectionFailure extends SupabaseFailure {
 class SupabaseAuthFailure extends SupabaseFailure {
   const SupabaseAuthFailure([super.message = 'Autentikasi Supabase bermasalah.', super.code]);
 }
+
+class SupabaseDatabaseFailure extends SupabaseFailure {
+  const SupabaseDatabaseFailure([super.message = 'Terjadi kesalahan pada database Supabase.', super.code]);
+}

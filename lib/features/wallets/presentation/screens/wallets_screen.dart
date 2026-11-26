@@ -346,6 +346,9 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
 
                               if (confirm == true) {
                                 await ref.read(walletsControllerProvider.notifier).unarchiveWallet(item.wallet.id);
+                                ref.invalidate(walletsWithBalanceStreamProvider);
+                                ref.invalidate(archivedWalletsWithBalanceStreamProvider);
+                                ref.invalidate(totalAllAssetBalanceProvider);
                                 if (context.mounted) {
                                   Navigator.of(context).pop();
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -377,6 +380,9 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
 
                               if (confirm == true) {
                                 await ref.read(walletsControllerProvider.notifier).archiveWallet(item.wallet.id);
+                                ref.invalidate(walletsWithBalanceStreamProvider);
+                                ref.invalidate(archivedWalletsWithBalanceStreamProvider);
+                                ref.invalidate(totalAllAssetBalanceProvider);
                                 if (context.mounted) {
                                   Navigator.of(context).pop();
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -660,7 +666,7 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
     final archivedWalletsAsync = ref.watch(archivedWalletsWithBalanceStreamProvider);
     final totalBalance = ref.watch(totalAllAssetBalanceProvider);
 
-    final archivedWallets = archivedWalletsAsync.asData?.value ?? [];
+    final archivedWallets = archivedWalletsAsync.value ?? [];
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
     final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
 

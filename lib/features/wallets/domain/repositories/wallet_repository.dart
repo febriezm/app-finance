@@ -34,6 +34,9 @@ abstract class WalletRepository {
   /// Mengaktifkan kembali wallet yang diarsipkan
   Future<void> unarchiveWallet(String id);
 
+  /// Menghapus wallet permanen
+  Future<void> deleteWallet(String id);
+
   /// Mengambil semua wallet yang diarsipkan beserta saldo berjalannya
   Future<List<WalletWithBalance>> getArchivedWalletsWithBalance();
 

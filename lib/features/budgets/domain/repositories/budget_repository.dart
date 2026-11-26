@@ -1,11 +1,20 @@
 import '../entities/budget.dart';
 
 abstract class BudgetRepository {
+  /// Mengambil seluruh data master budget
+  Future<List<Budget>> getAllBudgets();
+
+  /// Watch seluruh data master budget secara reaktif
+  Stream<List<Budget>> watchAllBudgets();
+
   /// Mengambil data master budget berdasarkan bulan (YYYY-MM)
   Future<Budget?> getBudgetByMonthKey(String monthKey);
 
   /// Watch data master budget berdasarkan bulan (YYYY-MM)
   Stream<Budget?> watchBudgetByMonthKey(String monthKey);
+
+  /// Mengambil data master budget berdasarkan ID
+  Future<Budget?> getBudgetById(String id);
 
   /// Mengambil limit kategori untuk suatu budget
   Future<List<BudgetCategoryLimit>> getCategoryLimits(String budgetId);
@@ -24,4 +33,7 @@ abstract class BudgetRepository {
     required Budget budget,
     required List<BudgetCategoryLimit> categoryLimits,
   });
+
+  /// Menghapus budget bulanan beserta limit kategorinya
+  Future<void> deleteBudget(String budgetId);
 }

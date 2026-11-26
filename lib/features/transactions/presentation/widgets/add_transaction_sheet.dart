@@ -258,20 +258,37 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
     // Jika mengedit transaksi yang sudah ada, batalkan versi lama terlebih dahulu
     if (widget.initialTransaction != null) {
-      await ref.read(transactionsControllerProvider.notifier).voidTransaction(widget.initialTransaction!.transaction.id);
+      if (widget.initialTransaction!.transaction.type == TransactionType.transfer) {
+        await ref.read(transferControllerProvider.notifier).voidTransfer(widget.initialTransaction!.transaction.id);
+      } else {
+        await ref.read(transactionsControllerProvider.notifier).voidTransaction(widget.initialTransaction!.transaction.id);
+      }
     }
 
-    final success = await ref.read(transactionsControllerProvider.notifier).createTransaction(
-          type: _type,
-          amount: _amount,
-          occurredAt: _occurredAt,
-          walletId: _selectedWalletId!,
-          destinationWalletId: destWalletId,
-          categoryId: _type != TransactionType.transfer ? _selectedCategoryId : null,
-          merchant: merchant,
-          description: description,
-          notes: notes,
-        );
+    final bool success;
+    if (_type == TransactionType.transfer) {
+      success = await ref.read(transferControllerProvider.notifier).createTransfer(
+            amount: _amount,
+            occurredAt: _occurredAt,
+            sourceWalletId: _selectedWalletId!,
+            destinationWalletId: destWalletId,
+            merchant: merchant,
+            description: description,
+            notes: notes,
+          );
+    } else {
+      success = await ref.read(transactionsControllerProvider.notifier).createTransaction(
+            type: _type,
+            amount: _amount,
+            occurredAt: _occurredAt,
+            walletId: _selectedWalletId!,
+            destinationWalletId: destWalletId,
+            categoryId: _selectedCategoryId,
+            merchant: merchant,
+            description: description,
+            notes: notes,
+          );
+    }
 
     setState(() => _isLoading = false);
 

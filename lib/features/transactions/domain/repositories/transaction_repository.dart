@@ -30,8 +30,14 @@ abstract class TransactionRepository {
   /// Mencatat transaksi baru (income, expense, transfer)
   Future<void> createTransaction(Transaction transaction);
 
+  /// Memperbarui informasi transaksi
+  Future<void> updateTransaction(Transaction transaction);
+
   /// Membatalkan (void) transaksi sehingga tidak memengaruhi saldo
   Future<void> voidTransaction(String id);
+
+  /// Menghapus transaksi secara permanen
+  Future<void> deleteTransaction(String id);
 
   /// Menghitung total pemasukan terkonfirmasi bulan tertentu
   Future<int> getMonthlyIncome(int year, int month);

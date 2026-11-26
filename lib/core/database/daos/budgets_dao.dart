@@ -14,6 +14,21 @@ class BudgetsDao extends DatabaseAccessor<AppDatabase> with _$BudgetsDaoMixin {
     return (select(budgetsTable)..where((t) => t.monthKey.equals(monthKey))).getSingleOrNull();
   }
 
+  /// Mengambil budget berdasarkan ID
+  Future<BudgetEntry?> getBudgetById(String id) {
+    return (select(budgetsTable)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  /// Mengambil seluruh data budget
+  Future<List<BudgetEntry>> getAllBudgets() {
+    return (select(budgetsTable)..orderBy([(t) => OrderingTerm.desc(t.monthKey)])).get();
+  }
+
+  /// Watch seluruh data budget
+  Stream<List<BudgetEntry>> watchAllBudgets() {
+    return (select(budgetsTable)..orderBy([(t) => OrderingTerm.desc(t.monthKey)])).watch();
+  }
+
   /// Watch stream budget berdasarkan bulan (YYYY-MM)
   Stream<BudgetEntry?> watchBudgetByMonthKey(String monthKey) {
     return (select(budgetsTable)..where((t) => t.monthKey.equals(monthKey))).watchSingleOrNull();
@@ -24,11 +39,21 @@ class BudgetsDao extends DatabaseAccessor<AppDatabase> with _$BudgetsDaoMixin {
     return into(budgetsTable).insert(budget);
   }
 
+  /// Insert atau replace budget (untuk sinkronisasi cloud)
+  Future<int> insertOrReplaceBudget(BudgetsTableCompanion budget) {
+    return into(budgetsTable).insertOnConflictUpdate(budget);
+  }
+
   /// Update budget bulanan
   Future<bool> updateBudget(BudgetsTableCompanion budget) {
     return (update(budgetsTable)..where((t) => t.id.equals(budget.id.value)))
         .write(budget)
         .then((rows) => rows > 0);
+  }
+
+  /// Hapus budget bulanan berdasarkan ID
+  Future<int> deleteBudget(String id) {
+    return (delete(budgetsTable)..where((t) => t.id.equals(id))).go();
   }
 
   /// Ambil seluruh limit kategori untuk suatu budget

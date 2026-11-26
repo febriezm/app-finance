@@ -1,23 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../app/app_providers.dart';
-import '../../../../app/router.dart';
-import '../../../../core/formatting/date_formatter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/app_haptics.dart';
 import '../../../../shared/widgets/shared_widgets.dart';
-import '../../../backup_restore/presentation/screens/backup_restore_screen.dart';
 import '../../../categories/domain/entities/category.dart';
-import '../../../reports/presentation/widgets/export_sheet.dart';
 import '../../../security/presentation/widgets/pin_setup_sheet.dart';
 import '../../../security/presentation/widgets/pin_verify_sheet.dart';
-import '../../../../core/config/supabase_config.dart';
-import '../../../../core/services/supabase_service.dart';
 
 /// Halaman Pengaturan (Settings) — MyFinance Minimal (Quiet, Clean, Premium).
 ///
@@ -31,164 +24,23 @@ import '../../../../core/services/supabase_service.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-  void _showCategoriesSheet(BuildContext context, WidgetRef ref) {
+  void _showCategoriesSheet(BuildContext context) {
     unawaited(AppHaptics.selection());
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final expenseCategoriesAsync = ref.watch(activeCategoriesStreamProvider(CategoryType.expense));
-    final incomeCategoriesAsync = ref.watch(activeCategoriesStreamProvider(CategoryType.income));
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Kategori Transaksi',
-                style: AppTypography.title2.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Daftar kategori bawaan untuk mencatat pengeluaran dan pemasukan',
-                style: AppTypography.caption.copyWith(
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Divider(
-                height: 1,
-                thickness: 0.6,
-                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-              ),
-              const SizedBox(height: 12),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    const MinimalSectionHeader(title: 'Kategori Pengeluaran'),
-                    expenseCategoriesAsync.when(
-                      data: (categories) => _buildCategoryItemList(categories, isDark),
-                      loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
-                      error: (e, _) => const Text('Gagal memuat kategori pengeluaran'),
-                    ),
-                    const SizedBox(height: 20),
-                    const MinimalSectionHeader(title: 'Kategori Pemasukan'),
-                    incomeCategoriesAsync.when(
-                      data: (categories) => _buildCategoryItemList(categories, isDark),
-                      loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
-                      error: (e, _) => const Text('Gagal memuat kategori pemasukan'),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryItemList(List<Category> categories, bool isDark) {
-    return Column(
-      children: categories.asMap().entries.map((entry) {
-        final idx = entry.key;
-        final cat = entry.value;
-        final color = AppIcons.parseColor(cat.colorHex);
-
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: isDark ? 0.2 : 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: color.withValues(alpha: isDark ? 0.4 : 0.25),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: Icon(
-                      AppIcons.getIcon(cat.iconKey),
-                      size: 18,
-                      color: isDark ? Colors.white : color,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      cat.name,
-                      style: AppTypography.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceElevatedDark : AppColors.dividerLight,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      cat.type == CategoryType.expense ? 'Pengeluaran' : 'Pemasukan',
-                      style: AppTypography.caption2.copyWith(
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (idx < categories.length - 1)
-              Divider(
-                height: 1,
-                thickness: 0.6,
-                indent: 48,
-                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-              ),
-          ],
-        );
-      }).toList(),
+      builder: (context) => _CategoriesModalSheet(isDark: isDark),
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentMonthKey = AppDateFormatter.toMonthKey(DateTime.now());
     final themeMode = ref.watch(themeModeProvider);
     final lockState = ref.watch(appLockControllerProvider);
-    final walletsAsync = ref.watch(walletsWithBalanceStreamProvider);
-    final activeWalletsCount = walletsAsync.asData?.value.length ?? 0;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -198,55 +50,7 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
         children: [
-          // 1. App Info Header (Minimalist & Quiet)
-          _buildAppHeader(isDark),
-
-          const SizedBox(height: 28),
-
-          // 2. Group: General (Umum)
-          _buildGroupHeader('UMUM', isDark),
-          _buildGroupCard(
-            isDark: isDark,
-            children: [
-              _buildSettingTile(
-                icon: Icons.language_rounded,
-                iconColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                title: 'Format Wilayah & Bahasa',
-                subtitle: 'Indonesia (id_ID) • DD/MM/YYYY',
-                trailingBadge: 'WIB',
-                isDark: isDark,
-                onTap: () {
-                  unawaited(AppHaptics.light());
-                  _showInfoDialog(
-                    context,
-                    title: 'Wilayah & Bahasa',
-                    content: 'Aplikasi menggunakan standar lokalisasi Bahasa Indonesia (id_ID) dengan format tanggal tanggal/bulan/tahun dan zona waktu lokal perangkat Anda.',
-                  );
-                },
-              ),
-              _buildDivider(isDark),
-              _buildSettingTile(
-                icon: Icons.calendar_today_outlined,
-                iconColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                title: 'Awal Periode Laporan',
-                subtitle: 'Siklus bulanan dimulai tanggal 1',
-                trailingBadge: 'Tgl 1',
-                isDark: isDark,
-                onTap: () {
-                  unawaited(AppHaptics.light());
-                  _showInfoDialog(
-                    context,
-                    title: 'Periode Finansial',
-                    content: 'Perhitungan anggaran bulanan dan laporan arus kas dihitung otomatis mulai dari tanggal 1 hingga akhir bulan kalender berjalan.',
-                  );
-                },
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // 3. Group: Appearance (Tampilan & Tema)
+          // 1. Group: Appearance (Tampilan & Tema) — Paling Atas
           _buildGroupHeader('TAMPILAN & TEMA', isDark),
           _buildGroupCard(
             isDark: isDark,
@@ -328,11 +132,45 @@ class SettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 24),
 
-          // 4. Group: Currency (Mata Uang)
-          _buildGroupHeader('MATA UANG', isDark),
+          // 2. Group: General (Umum) — Disatukan dengan Mata Uang & Kategori
+          _buildGroupHeader('UMUM', isDark),
           _buildGroupCard(
             isDark: isDark,
             children: [
+              _buildSettingTile(
+                icon: Icons.language_rounded,
+                iconColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                title: 'Format Wilayah & Bahasa',
+                subtitle: 'Indonesia (id_ID) • DD/MM/YYYY',
+                trailingBadge: 'WIB',
+                isDark: isDark,
+                onTap: () {
+                  unawaited(AppHaptics.light());
+                  _showInfoDialog(
+                    context,
+                    title: 'Wilayah & Bahasa',
+                    content: 'Aplikasi menggunakan standar lokalisasi Bahasa Indonesia (id_ID) dengan format tanggal tanggal/bulan/tahun dan zona waktu lokal perangkat Anda.',
+                  );
+                },
+              ),
+              _buildDivider(isDark),
+              _buildSettingTile(
+                icon: Icons.calendar_today_outlined,
+                iconColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                title: 'Awal Periode Laporan',
+                subtitle: 'Siklus bulanan dimulai tanggal 1',
+                trailingBadge: 'Tgl 1',
+                isDark: isDark,
+                onTap: () {
+                  unawaited(AppHaptics.light());
+                  _showInfoDialog(
+                    context,
+                    title: 'Periode Finansial',
+                    content: 'Perhitungan anggaran bulanan dan laporan arus kas dihitung otomatis mulai dari tanggal 1 hingga akhir bulan kalender berjalan.',
+                  );
+                },
+              ),
+              _buildDivider(isDark),
               _buildSettingTile(
                 icon: Icons.payments_outlined,
                 iconColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
@@ -349,16 +187,7 @@ class SettingsScreen extends ConsumerWidget {
                   );
                 },
               ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // 5. Group: Categories (Kategori)
-          _buildGroupHeader('KATEGORI TRANSAKSI', isDark),
-          _buildGroupCard(
-            isDark: isDark,
-            children: [
+              _buildDivider(isDark),
               _buildSettingTile(
                 icon: Icons.category_outlined,
                 iconColor: Colors.teal,
@@ -366,82 +195,7 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: 'Kelola kategori pengeluaran & pemasukan',
                 showChevron: true,
                 isDark: isDark,
-                onTap: () => _showCategoriesSheet(context, ref),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // 6. Group: Wallet Management (Manajemen Dompet)
-          _buildGroupHeader('MANAJEMEN DOMPET', isDark),
-          _buildGroupCard(
-            isDark: isDark,
-            children: [
-              _buildSettingTile(
-                icon: Icons.account_balance_wallet_outlined,
-                iconColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
-                title: 'Dompet & Rekening',
-                subtitle: '$activeWalletsCount dompet aktif tercatat',
-                showChevron: true,
-                isDark: isDark,
-                onTap: () {
-                  unawaited(AppHaptics.light());
-                  context.go(AppRouter.wallets);
-                },
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // 7. Group: Data Management (Manajemen Data)
-          _buildGroupHeader('MANAJEMEN DATA', isDark),
-          _buildGroupCard(
-            isDark: isDark,
-            children: [
-              _buildSettingTile(
-                icon: Icons.ios_share_rounded,
-                iconColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                title: 'Ekspor Laporan (PDF / CSV)',
-                subtitle: 'Simpan berkas PDF cetak atau tabular CSV',
-                showChevron: true,
-                isDark: isDark,
-                onTap: () {
-                  unawaited(AppHaptics.light());
-                  ExportSheet.show(context, currentMonthKey);
-                },
-              ),
-              _buildDivider(isDark),
-              _buildSettingTile(
-                icon: Icons.cloud_sync_outlined,
-                iconColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
-                title: 'Cadangkan & Pulihkan (Backup & Restore)',
-                subtitle: 'Ekspor arsip JSON terstruktur atau pulihkan data',
-                showChevron: true,
-                isDark: isDark,
-                onTap: () {
-                  unawaited(AppHaptics.light());
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const BackupRestoreScreen(),
-                    ),
-                  );
-                },
-              ),
-              _buildDivider(isDark),
-              _buildSettingTile(
-                icon: Icons.cloud_done_outlined,
-                iconColor: Colors.blueAccent,
-                title: 'Koneksi Cloud (Supabase)',
-                subtitle: SupabaseConfig.isConfigured
-                    ? 'Terkoneksi ke ${SupabaseConfig.safeUrl}'
-                    : 'Mode Offline (SQLite Lokal Aktif)',
-                trailingBadge: SupabaseConfig.isConfigured ? 'Cloud' : 'Offline',
-                showChevron: true,
-                isDark: isDark,
-                onTap: () => _showSupabaseConnectionSheet(context, ref),
+                onTap: () => _showCategoriesSheet(context),
               ),
             ],
           ),
@@ -602,19 +356,20 @@ class SettingsScreen extends ConsumerWidget {
               _buildSettingTile(
                 icon: Icons.shield_outlined,
                 iconColor: Colors.blue,
-                title: 'Jaminan Privasi Offline-First',
-                subtitle: 'Tanpa pelacak, analitik, atau server eksternal',
+                title: 'Jaminan Privasi Cloud & Enkripsi',
+                subtitle: 'PostgreSQL RLS terisolasi & enkripsi transit TLS 1.3',
                 showChevron: true,
                 isDark: isDark,
                 onTap: () {
                   unawaited(AppHaptics.light());
                   _showInfoDialog(
                     context,
-                    title: 'Privasi 100% Offline',
-                    content: 'MyFinance beroperasi sepenuhnya di dalam sandbox perangkat iPhone/ponsel Anda.\n\n'
-                        '• Basis data SQLite lokal (Drift Engine)\n'
-                        '• OCR struk diproses di perangkat tanpa unggah foto\n'
-                        '• Tidak ada server backend, analitik pihak ketiga, atau pelacakan data keuangan.',
+                    title: 'Privasi & Keamanan Cloud',
+                    content: 'MyFinance beroperasi dengan arsitektur Full Cloud Supabase PostgreSQL yang mengutamakan keamanan dan privasi data finansial Anda.\n\n'
+                        '• Database Cloud Supabase PostgreSQL dengan isolasi Row Level Security (RLS)\n'
+                        '• Akses data terisolasi ketat hanya untuk akun terautentikasi (auth.uid())\n'
+                        '• Berkas struk/receipt tersimpan privat di Supabase Storage (User-Scoped Bucket)\n'
+                        '• Seluruh transmisi data dienkripsi dengan standar TLS 1.3.',
                   );
                 },
               ),
@@ -632,7 +387,7 @@ class SettingsScreen extends ConsumerWidget {
                 icon: Icons.info_outline_rounded,
                 iconColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                 title: 'Versi Aplikasi',
-                subtitle: 'MyFinance v1.0.0 (Release Build)',
+                subtitle: 'MyFinance v1.0.0 (Cloud Build)',
                 trailingBadge: 'v1.0.0',
                 isDark: isDark,
                 onTap: () {
@@ -640,7 +395,7 @@ class SettingsScreen extends ConsumerWidget {
                   _showInfoDialog(
                     context,
                     title: 'MyFinance v1.0.0',
-                    content: 'Aplikasi manajemen keuangan pribadi modern, minimalis, dan privat yang mematuhi standar akuntansi integer Rupiah dan arsitektur offline-first.',
+                    content: 'Aplikasi manajemen keuangan pribadi modern, minimalis, dan privat yang mematuhi standar akuntansi integer Rupiah dan arsitektur Full Cloud Supabase PostgreSQL.',
                   );
                 },
               ),
@@ -649,7 +404,7 @@ class SettingsScreen extends ConsumerWidget {
                 icon: Icons.description_outlined,
                 iconColor: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                 title: 'Arsitektur & Lisensi',
-                subtitle: 'Flutter • Drift SQLite • On-Device OCR',
+                subtitle: 'Flutter • Supabase PostgreSQL • Cloud Storage',
                 showChevron: true,
                 isDark: isDark,
                 onTap: () {
@@ -657,7 +412,7 @@ class SettingsScreen extends ConsumerWidget {
                   _showInfoDialog(
                     context,
                     title: 'Arsitektur & Lisensi',
-                    content: 'Dikembangkan dengan arsitektur Clean Architecture, Riverpod, dan Drift SQLite engine.\n\nHak Cipta © 2026 MyFinance. Seluruh data keuangan milik Anda sepenuhnya di perangkat lokal.',
+                    content: 'Dikembangkan dengan arsitektur Clean Architecture, Riverpod, dan Supabase PostgreSQL Cloud engine.\n\nHak Cipta © 2026 MyFinance. Seluruh data keuangan tersimpan aman dan terisolasi di Supabase Cloud.',
                   );
                 },
               ),
@@ -665,91 +420,6 @@ class SettingsScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 48),
-        ],
-      ),
-    );
-  }
-
-  /// App Info Header Minimalis
-  Widget _buildAppHeader(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-          width: 0.8,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: (isDark ? AppColors.incomeDark : AppColors.incomeLight).withValues(alpha: isDark ? 0.2 : 0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: (isDark ? AppColors.incomeDark : AppColors.incomeLight).withValues(alpha: isDark ? 0.4 : 0.25),
-                width: 0.8,
-              ),
-            ),
-            child: Icon(
-              Icons.account_balance_wallet_outlined,
-              color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'MyFinance',
-                      style: AppTypography.title3.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: (isDark ? AppColors.incomeContainerDark : AppColors.incomeContainerLight),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'v1.0.0',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.shield_outlined,
-                      size: 13,
-                      color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '100% Offline • Penyimpanan Lokal Privat',
-                      style: AppTypography.caption.copyWith(
-                        color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -775,17 +445,20 @@ class SettingsScreen extends ConsumerWidget {
     required bool isDark,
     required List<Widget> children,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-          width: 0.8,
+    return Material(
+      color: isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceLight,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            width: 0.8,
+          ),
         ),
-      ),
-      child: Column(
-        children: children,
+        child: Column(
+          children: children,
+        ),
       ),
     );
   }
@@ -885,76 +558,26 @@ class SettingsScreen extends ConsumerWidget {
       message: content,
     );
   }
-
-  void _showSupabaseConnectionSheet(BuildContext context, WidgetRef ref) {
-    unawaited(AppHaptics.selection());
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _SupabaseConnectionModal(isDark: isDark),
-    );
-  }
 }
 
-/// Modal Uji Konektivitas Supabase Cloud — MyFinance Minimal
-class _SupabaseConnectionModal extends ConsumerStatefulWidget {
+/// Modal Sheet Daftar Kategori Transaksi — Reaktif dengan ConsumerWidget
+class _CategoriesModalSheet extends ConsumerWidget {
   final bool isDark;
 
-  const _SupabaseConnectionModal({required this.isDark});
+  const _CategoriesModalSheet({required this.isDark});
 
   @override
-  ConsumerState<_SupabaseConnectionModal> createState() => _SupabaseConnectionModalState();
-}
-
-class _SupabaseConnectionModalState extends ConsumerState<_SupabaseConnectionModal> {
-  bool _isLoading = false;
-  SupabaseConnectionResult? _result;
-
-  @override
-  void initState() {
-    super.initState();
-    if (!SupabaseConfig.isConfigured) {
-      _result = SupabaseConnectionResult.notConfigured();
-    }
-  }
-
-  Future<void> _runConnectionTest() async {
-    setState(() => _isLoading = true);
-    unawaited(AppHaptics.medium());
-    try {
-      final res = await ref.read(supabaseServiceProvider).checkConnection();
-      if (mounted) {
-        setState(() {
-          _result = res;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _result = SupabaseConnectionResult.failure(errorMessage: e.toString());
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textSecondary = widget.isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-    final borderColor = widget.isDark ? AppColors.borderDark : AppColors.borderLight;
-    final surfaceElevated = widget.isDark ? AppColors.surfaceElevatedDark : AppColors.surfaceLight;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final expenseCategoriesAsync = ref.watch(activeCategoriesStreamProvider(CategoryType.expense));
+    final incomeCategoriesAsync = ref.watch(activeCategoriesStreamProvider(CategoryType.income));
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.75,
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: widget.isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
+        color: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
       ),
       child: SafeArea(
@@ -967,213 +590,139 @@ class _SupabaseConnectionModalState extends ConsumerState<_SupabaseConnectionMod
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: widget.isDark ? AppColors.dividerDark : AppColors.dividerLight,
+                  color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Koneksi Supabase Cloud',
-                  style: AppTypography.title2.copyWith(fontWeight: FontWeight.w700),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: SupabaseConfig.isConfigured
-                        ? Colors.blue.withValues(alpha: 0.15)
-                        : Colors.orange.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    SupabaseConfig.isConfigured ? 'Terkonfigurasi' : 'Mode Offline',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: SupabaseConfig.isConfigured ? Colors.blue : Colors.orange,
-                    ),
-                  ),
-                ),
-              ],
+            Text(
+              'Kategori Transaksi',
+              style: AppTypography.title2.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(
-              'Status integrasi PostgreSQL cloud dan jaminan isolasi Row Level Security (RLS)',
-              style: AppTypography.caption.copyWith(color: textSecondary),
+              'Daftar kategori bawaan untuk mencatat pengeluaran dan pemasukan',
+              style: AppTypography.caption.copyWith(
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              ),
             ),
             const SizedBox(height: 16),
-            Divider(height: 1, thickness: 0.6, color: widget.isDark ? AppColors.dividerDark : AppColors.dividerLight),
-            const SizedBox(height: 16),
-
-            // Diagnostic Info Card
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: surfaceElevated,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: borderColor, width: 0.8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            Divider(
+              height: 1,
+              thickness: 0.6,
+              color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+            ),
+            const SizedBox(height: 12),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
                 children: [
-                  _buildDiagRow('Target Cloud Host', SupabaseConfig.safeUrl, textSecondary),
-                  const SizedBox(height: 8),
-                  _buildDiagRow(
-                    'Basis Data Primer',
-                    'SQLite Lokal (0ms latency)',
-                    textSecondary,
+                  const MinimalSectionHeader(title: 'Kategori Pengeluaran'),
+                  expenseCategoriesAsync.when(
+                    data: (categories) => _buildCategoryItemList(categories, isDark),
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    error: (e, _) => const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('Gagal memuat kategori pengeluaran'),
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  _buildDiagRow(
-                    'Kunci API',
-                    'Publishable Anon Key (Aman)',
-                    textSecondary,
+                  const SizedBox(height: 20),
+                  const MinimalSectionHeader(title: 'Kategori Pemasukan'),
+                  incomeCategoriesAsync.when(
+                    data: (categories) => _buildCategoryItemList(categories, isDark),
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    error: (e, _) => const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('Gagal memuat kategori pemasukan'),
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  _buildDiagRow(
-                    'Identitas Sesi',
-                    ref.watch(supabaseCurrentUserProvider)?.id ?? 'Belum login (Lokal)',
-                    textSecondary,
-                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // Hasil Uji Koneksi
-            if (_result != null) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _result!.isConnected
-                      ? Colors.green.withValues(alpha: 0.08)
-                      : (_result!.status == SupabaseConnectionStatus.unconfigured
-                          ? Colors.orange.withValues(alpha: 0.08)
-                          : Colors.red.withValues(alpha: 0.08)),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _result!.isConnected
-                        ? Colors.green.withValues(alpha: 0.3)
-                        : (_result!.status == SupabaseConnectionStatus.unconfigured
-                            ? Colors.orange.withValues(alpha: 0.3)
-                            : Colors.red.withValues(alpha: 0.3)),
-                    width: 0.8,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      _result!.isConnected
-                          ? Icons.check_circle_outline_rounded
-                          : (_result!.status == SupabaseConnectionStatus.unconfigured
-                              ? Icons.info_outline_rounded
-                              : Icons.error_outline_rounded),
-                      size: 20,
-                      color: _result!.isConnected
-                          ? Colors.green
-                          : (_result!.status == SupabaseConnectionStatus.unconfigured
-                              ? Colors.orange
-                              : Colors.red),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _result!.isConnected
-                                ? 'Terhubung (${_result!.latencyMs} ms)'
-                                : (_result!.status == SupabaseConnectionStatus.unconfigured
-                                    ? 'Mode Lokal Aktif'
-                                    : 'Koneksi Gagal'),
-                            style: AppTypography.bodyBold.copyWith(
-                              fontSize: 13,
-                              color: _result!.isConnected
-                                  ? Colors.green
-                                  : (_result!.status == SupabaseConnectionStatus.unconfigured
-                                      ? Colors.orange
-                                      : Colors.red),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _result!.errorMessage ??
-                                'PostgreSQL PostgREST endpoint merespons dengan baik dan siap digunakan.',
-                            style: AppTypography.caption2.copyWith(color: textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            const Spacer(),
-
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: borderColor, width: 0.8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Tutup'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _runConnectionTest,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.wifi_tethering_rounded, size: 18),
-                    label: Text(_isLoading ? 'Menguji...' : 'Uji Koneksi'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDiagRow(String label, String value, Color textColor) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: AppTypography.caption.copyWith(color: textColor, fontWeight: FontWeight.w500),
-        ),
-        Text(
-          value,
-          style: AppTypography.caption.copyWith(fontWeight: FontWeight.w600),
-        ),
-      ],
+  Widget _buildCategoryItemList(List<Category> categories, bool isDark) {
+    return Column(
+      children: categories.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final cat = entry.value;
+        final color = AppIcons.parseColor(cat.colorHex);
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: isDark ? 0.2 : 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: color.withValues(alpha: isDark ? 0.4 : 0.25),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Icon(
+                      AppIcons.getIcon(cat.iconKey),
+                      size: 18,
+                      color: isDark ? Colors.white : color,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      cat.name,
+                      style: AppTypography.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.surfaceElevatedDark : AppColors.dividerLight,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      cat.type == CategoryType.expense ? 'Pengeluaran' : 'Pemasukan',
+                      style: AppTypography.caption2.copyWith(
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (idx < categories.length - 1)
+              Divider(
+                height: 1,
+                thickness: 0.6,
+                indent: 48,
+                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+              ),
+          ],
+        );
+      }).toList(),
     );
   }
 }

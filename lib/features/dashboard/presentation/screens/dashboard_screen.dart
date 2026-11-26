@@ -108,6 +108,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
             },
           ),
           IconButton(
+            icon: const Icon(Icons.bar_chart_rounded, size: 21),
+            tooltip: 'Laporan Keuangan',
+            onPressed: () {
+              AppHaptics.selection();
+              context.push(AppRouter.reports);
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.settings_outlined, size: 21),
             tooltip: 'Pengaturan',
             onPressed: () {

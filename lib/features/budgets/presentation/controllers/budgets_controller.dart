@@ -55,4 +55,18 @@ class BudgetsController extends StateNotifier<AsyncValue<void>> {
       return false;
     }
   }
+
+  /// Menghapus anggaran bulanan beserta batas kategorinya
+  Future<bool> deleteBudget(String budgetId) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.deleteBudget(budgetId);
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e, st) {
+      debugPrint('Error deleting budget: $e\n$st');
+      state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
 }
