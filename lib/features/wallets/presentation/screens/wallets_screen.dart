@@ -66,16 +66,19 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(sheetContext).size.height * 0.88,
+        ),
         decoration: BoxDecoration(
           color: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
         ),
         child: SafeArea(
+          top: false,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 12),
               // Handle Bar
               Center(
                 child: Container(
@@ -87,19 +90,27 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
-              // Visual Realistic Physical Card (Gambar 1 & 2)
-              Center(
-                child: RealisticCardWidget(
-                  wallet: item.wallet,
-                  currentBalance: item.currentBalance,
-                  isBalanceVisible: _isBalanceVisible,
-                  accountHolderName: ref.read(authCurrentUserProvider)?.name,
-                  height: 175,
-                ),
-              ),
-              const SizedBox(height: 18),
+              // Scrollable Detail Body
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Visual Realistic Physical Card (Gambar 1 & 2)
+                      Center(
+                        child: RealisticCardWidget(
+                          wallet: item.wallet,
+                          currentBalance: item.currentBalance,
+                          isBalanceVisible: _isBalanceVisible,
+                          accountHolderName: ref.read(authCurrentUserProvider)?.name,
+                          height: 175,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
 
               // Wallet Header (Icon, Name, Type)
               Row(
@@ -462,6 +473,10 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
           ),
         ),
       ),
+    ],
+  ),
+),
+      ),
     );
   }
 
@@ -722,6 +737,92 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
     );
   }
 
+  /// Helper untuk merender section per tipe dompet (dengan Card Carousel / Deck UI)
+  Widget _buildWalletTypeSection({
+    required BuildContext context,
+    required WidgetRef ref,
+    required String title,
+    required List<WalletWithBalance> wallets,
+    required bool isDark,
+    required String? accountHolderName,
+    String? description,
+  }) {
+    if (wallets.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 22),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: AppTypography.caption.copyWith(
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${wallets.length}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (wallets.length > 1)
+                Text(
+                  'Geser kartu ➔',
+                  style: AppTypography.caption.copyWith(
+                    color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+                    fontSize: 11,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (description != null) ...[
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Text(
+              description,
+              style: AppTypography.caption.copyWith(
+                color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        WalletCardCarousel(
+          wallets: wallets,
+          isBalanceVisible: _isBalanceVisible,
+          accountHolderName: accountHolderName,
+          onCardTap: (item) => _showWalletDetailSheet(context, ref, item),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -791,48 +892,7 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 borderColor: borderColor,
               ),
 
-              // 2. Carousel Kartu Realistis (Persis Gambar 1 — Deck Kartu Horisontal)
-              if (wallets.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'KARTU FISIK & E-WALLET',
-                          style: AppTypography.caption.copyWith(
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
-                            fontSize: 11,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Geser kartu ➔',
-                        style: AppTypography.caption.copyWith(
-                          color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                WalletCardCarousel(
-                  wallets: wallets,
-                  isBalanceVisible: _isBalanceVisible,
-                  accountHolderName: accountHolderName,
-                  onCardTap: (item) => _showWalletDetailSheet(context, ref, item),
-                ),
-              ],
-
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
 
               // Quick Actions Bar (Transfer & Tambah Dompet)
               Row(
@@ -883,94 +943,50 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 ],
               ),
 
-              const SizedBox(height: 28),
+              // UI Kartu Per Tipe Dompet (Horizontal Carousel / Deck per Kategori)
+              // 2. Rekening Bank
+              _buildWalletTypeSection(
+                context: context,
+                ref: ref,
+                title: 'REKENING BANK',
+                wallets: bankWallets,
+                isDark: isDark,
+                accountHolderName: accountHolderName,
+              ),
 
-              // 3. Rekening Bank Group (Gambar 2 — Desain Fisik Paspor BCA dll)
-              if (bankWallets.isNotEmpty) ...[
-                MinimalSectionHeader(
-                  title: 'Rekening Bank',
-                  actionLabel: '${bankWallets.length}',
-                ),
-                ...bankWallets.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: RealisticCardWidget(
-                      wallet: item.wallet,
-                      currentBalance: item.currentBalance,
-                      isBalanceVisible: _isBalanceVisible,
-                      accountHolderName: accountHolderName,
-                      onTap: () => _showWalletDetailSheet(context, ref, item),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 14),
-              ],
+              // 3. Kas Tunai
+              _buildWalletTypeSection(
+                context: context,
+                ref: ref,
+                title: 'KAS TUNAI',
+                wallets: cashWallets,
+                isDark: isDark,
+                accountHolderName: accountHolderName,
+              ),
 
-              // 4. Kas Tunai Group
-              if (cashWallets.isNotEmpty) ...[
-                MinimalSectionHeader(
-                  title: 'Kas Tunai',
-                  actionLabel: '${cashWallets.length}',
-                ),
-                ...cashWallets.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: RealisticCardWidget(
-                      wallet: item.wallet,
-                      currentBalance: item.currentBalance,
-                      isBalanceVisible: _isBalanceVisible,
-                      accountHolderName: accountHolderName,
-                      onTap: () => _showWalletDetailSheet(context, ref, item),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 14),
-              ],
+              // 4. E-Wallet (DANA, GoPay, OVO, ShopeePay, LinkAja dll)
+              _buildWalletTypeSection(
+                context: context,
+                ref: ref,
+                title: 'E-WALLET',
+                wallets: eWalletWallets,
+                isDark: isDark,
+                accountHolderName: accountHolderName,
+              ),
 
-              // 5. E-Wallet Group (DANA, GoPay, OVO, ShopeePay dll)
-              if (eWalletWallets.isNotEmpty) ...[
-                MinimalSectionHeader(
-                  title: 'E-Wallet',
-                  actionLabel: '${eWalletWallets.length}',
-                ),
-                ...eWalletWallets.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: RealisticCardWidget(
-                      wallet: item.wallet,
-                      currentBalance: item.currentBalance,
-                      isBalanceVisible: _isBalanceVisible,
-                      accountHolderName: accountHolderName,
-                      onTap: () => _showWalletDetailSheet(context, ref, item),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 14),
-              ],
-
-              // 6. Lainnya Group
-              if (otherWallets.isNotEmpty) ...[
-                MinimalSectionHeader(
-                  title: 'Lainnya / Investasi',
-                  actionLabel: '${otherWallets.length}',
-                ),
-                ...otherWallets.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: RealisticCardWidget(
-                      wallet: item.wallet,
-                      currentBalance: item.currentBalance,
-                      isBalanceVisible: _isBalanceVisible,
-                      accountHolderName: accountHolderName,
-                      onTap: () => _showWalletDetailSheet(context, ref, item),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 14),
-              ],
+              // 5. Lainnya / Investasi
+              _buildWalletTypeSection(
+                context: context,
+                ref: ref,
+                title: 'LAINNYA / INVESTASI',
+                wallets: otherWallets,
+                isDark: isDark,
+                accountHolderName: accountHolderName,
+              ),
 
               // State jika dompet aktif kosong tetapi arsip tersedia
               if (wallets.isEmpty) ...[
+                const SizedBox(height: 24),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -991,38 +1007,19 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
               ],
 
-              // 6. Dompet Diarsipkan / Cadangan Group
-              if (archivedWallets.isNotEmpty) ...[
-                MinimalSectionHeader(
-                  title: 'Dompet Diarsipkan',
-                  actionLabel: '${archivedWallets.length}',
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'Dompet cadangan disimpan sebagai arsip saldo dan tidak dapat dipilih sebagai sumber dana transaksi.',
-                    style: AppTypography.caption.copyWith(
-                      color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-                    ),
-                  ),
-                ),
-                ...archivedWallets.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: RealisticCardWidget(
-                      wallet: item.wallet,
-                      currentBalance: item.currentBalance,
-                      isBalanceVisible: _isBalanceVisible,
-                      accountHolderName: accountHolderName,
-                      onTap: () => _showWalletDetailSheet(context, ref, item),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 24),
-              ],
+              // 6. Dompet Diarsipkan / Cadangan
+              _buildWalletTypeSection(
+                context: context,
+                ref: ref,
+                title: 'DOMPET DIARSIPKAN',
+                wallets: archivedWallets,
+                isDark: isDark,
+                accountHolderName: accountHolderName,
+                description: 'Dompet cadangan disimpan sebagai arsip saldo dan tidak dapat dipilih sebagai sumber dana transaksi.',
+              ),
+              const SizedBox(height: 24),
             ],
           );
         },
@@ -1055,21 +1052,10 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
 
   WalletType _selectedType = WalletType.bank;
   int _openingBalance = 0;
-  String _selectedColorHex = '0xFF0E7A4A';
+  final String _selectedColorHex = '0xFF0E7A4A';
   String _selectedIconKey = 'bank';
   bool _isLoading = false;
   String? _nameError;
-
-  final List<String> _colors = const [
-    '0xFF0E7A4A', // Emerald
-    '0xFF2ED573', // Mint
-    '0xFF10AC84', // Teal
-    '0xFF0984E3', // Blue
-    '0xFF9B59B6', // Purple
-    '0xFFE67E22', // Orange
-    '0xFFD63031', // Crimson
-    '0xFF2C3E50', // Navy
-  ];
 
   @override
   void dispose() {
@@ -1468,52 +1454,6 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                     onChanged: _onBalanceChanged,
                   ),
 
-                  const SizedBox(height: 20),
-
-                  // Pilihan Warna Aksen
-                  Text(
-                    'WARNA AKSEN',
-                    style: AppTypography.caption1.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: _colors.map((cHex) {
-                      final color = AppIcons.parseColor(cHex);
-                      final isSelected = _selectedColorHex == cHex;
-                      return GestureDetector(
-                        onTap: () {
-                          unawaited(AppHaptics.selection());
-                          setState(() => _selectedColorHex = cHex);
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 14),
-                          padding: const EdgeInsets.all(2.5),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? (isDark ? Colors.white : AppColors.textPrimaryLight)
-                                  : Colors.transparent,
-                              width: 2.0,
-                            ),
-                          ),
-                          child: Container(
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
                   const SizedBox(height: 24),
                 ],
               ),
@@ -1543,8 +1483,6 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
   bool _isLoading = false;
   String? _nameError;
 
-  late final List<String> _colors;
-
   @override
   void initState() {
     super.initState();
@@ -1552,23 +1490,6 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
     _selectedType = widget.wallet.type;
     _selectedColorHex = widget.wallet.colorHex ?? '0xFF0E7A4A';
     _selectedIconKey = widget.wallet.iconKey ?? 'wallet';
-
-    const defaultColors = [
-      '0xFF0E7A4A', // Emerald
-      '0xFF2ED573', // Mint
-      '0xFF10AC84', // Teal
-      '0xFF0984E3', // Blue
-      '0xFF9B59B6', // Purple
-      '0xFFE67E22', // Orange
-      '0xFFD63031', // Crimson
-      '0xFF2C3E50', // Navy
-    ];
-
-    if (!defaultColors.contains(_selectedColorHex)) {
-      _colors = [_selectedColorHex, ...defaultColors];
-    } else {
-      _colors = defaultColors;
-    }
   }
 
   @override
@@ -1966,52 +1887,6 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                   Text(
                     'Saldo awal dikunci untuk menjaga konsistensi kalkulasi mutasi transaksi.',
                     style: AppTypography.caption2.copyWith(color: textSecondary, fontSize: 11),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Warna Aksen
-                  Text(
-                    'WARNA AKSEN',
-                    style: AppTypography.caption1.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: _colors.map((cHex) {
-                      final color = AppIcons.parseColor(cHex);
-                      final isSelected = _selectedColorHex == cHex;
-                      return GestureDetector(
-                        onTap: () {
-                          unawaited(AppHaptics.selection());
-                          setState(() => _selectedColorHex = cHex);
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 14),
-                          padding: const EdgeInsets.all(2.5),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? (isDark ? Colors.white : AppColors.textPrimaryLight)
-                                  : Colors.transparent,
-                              width: 2.0,
-                            ),
-                          ),
-                          child: Container(
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
                   ),
 
                   const SizedBox(height: 24),

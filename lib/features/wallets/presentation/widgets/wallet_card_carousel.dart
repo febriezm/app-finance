@@ -70,6 +70,22 @@ class _WalletCardCarouselState extends State<WalletCardCarousel> {
       return const SizedBox.shrink();
     }
 
+    // Jika hanya 1 kartu di kategori ini, tampilkan langsung tanpa slider
+    if (widget.wallets.length == 1) {
+      final item = widget.wallets.first;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        child: RealisticCardWidget(
+          wallet: item.wallet,
+          currentBalance: item.currentBalance,
+          isBalanceVisible: widget.isBalanceVisible,
+          accountHolderName: widget.accountHolderName,
+          isSelected: true,
+          onTap: () => widget.onCardTap?.call(item),
+        ),
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -112,37 +128,36 @@ class _WalletCardCarouselState extends State<WalletCardCarousel> {
         const SizedBox(height: 12),
 
         // 2. Animated Dots Indicator & Counter
-        if (widget.wallets.length > 1)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ...List.generate(widget.wallets.length, (index) {
-                final isCurrent = index == _currentPage;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOutCubic,
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: isCurrent ? 20 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: isCurrent
-                        ? (isDark ? Colors.white : AppColors.primaryNavy)
-                        : (isDark ? Colors.white24 : Colors.black12),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                );
-              }),
-              const SizedBox(width: 10),
-              Text(
-                '${_currentPage + 1} / ${widget.wallets.length}',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: textSecondary,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ...List.generate(widget.wallets.length, (index) {
+              final isCurrent = index == _currentPage;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: isCurrent ? 20 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: isCurrent
+                      ? (isDark ? Colors.white : AppColors.primaryNavy)
+                      : (isDark ? Colors.white24 : Colors.black12),
+                  borderRadius: BorderRadius.circular(3),
                 ),
+              );
+            }),
+            const SizedBox(width: 10),
+            Text(
+              '${_currentPage + 1} / ${widget.wallets.length}',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: textSecondary,
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
       ],
     );
   }

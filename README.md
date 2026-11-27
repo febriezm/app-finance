@@ -48,8 +48,8 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
    - **Edit Langsung (In-Place)**: Pembaruan transaksi, transfer saldo, dompet, dan anggaran dilakukan langsung pada baris data yang ada tanpa menghasilkan entri duplikasi atau perubahan ID.
    - **Hapus Permanen Tanpa Coretan**: Menghilangkan seluruh konsep pembatalan semu (*void*) atau teks dicoret (*strikethrough*). Ketika data dihapus, data tersebut dihilangkan secara permanen dari SQLite lokal dan Supabase Cloud, serta saldo buku besar disinkronkan kembali secara otomatis.
 
-10. **Desain Kartu Fisik Realistis & Carousel Dompet (Physical Bank Cards & E-Wallet Themes)**
-    - **Carousel Dek Kartu Horisontal**: Menu Dompet & Rekening menampilkan daftar dompet aktif dalam bentuk carousel kartu horizontal modern dengan efek intip kartu berikutnya (*peek fraction 0.88*), indikator titik dinamis, dan animasi skala interaktif saat digeser.
+10. **Desain Kartu Fisik Realistis & Carousel Dompet Per Kategori (Physical Bank Cards & E-Wallet Themes)**
+    - **UI Carousel / Dek Kartu Per Tipe**: Menu Dompet & Rekening mengelompokkan kartu ke masing-masing kategori akun (*Rekening Bank*, *Kas Tunai*, *E-Wallet*, *Lainnya/Investasi*, dan *Dompet Diarsipkan*). Setiap tipe yang memiliki lebih dari satu kartu menampilkan slider horizontal bergaya dek kartu dengan efek intip kartu berikutnya (*peek fraction 0.88*), indikator titik dinamis, dan petunjuk *Geser kartu ➔*. Kategori dengan kartu tunggal ditampilkan proporsional penuh tanpa duplikasi daftar vertikal.
     - **Kartu Bank Realistis Sesuai Fisik Asli**:
       - **Paspor BCA Blue**: Gradien cyan/biru dengan tekstur *pebble/gelembung air*, chip EMV, logo diamond BCA, dan jaringan Mastercard.
       - **Paspor BCA Gold**: Gradien emas metalik dengan ilustrasi batik burung garuda (*golden bird vector*), chip emas, teks "Paspor gold debit", dan jaringan GPN/Mastercard.
@@ -63,7 +63,8 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
       - **ShopeePay**: Oranye cerah khas Shopee dengan aksen tas belanja.
       - **LinkAja**: Merah kobalt khas LinkAja.
       - **Kas Tunai**: Pola *guilloche geometric* hijau zamrud menyerupai tekstur uang kertas Rupiah fisik.
-    - **Detail Fisik Autentik & Pratinjau Langsung**: Dilengkapi chip pintar logam EMV (jalur sirkuit mikro vektor), gelombang nirkabel *contactless payment*, 4 digit kartu unik deterministik (`•••• 8398`), masa berlaku (*VALID THRU*), nama pemegang kartu, dan selector templat kartu instan di modal Tambah/Edit Dompet.
+    - **Modal Detail Dompet Adaptif & Anti-Terpotong**: Lembar detail dompet (*Wallet Detail Sheet*) dioptimalkan dengan batasan tinggi aman 88% layar dan kontainer gulir mulus (*BouncingScrollPhysics*), memastikan seluruh tombol aksi (*Riwayat Mutasi*, *Transfer*, *Edit*, *Arsipkan*, dan *Hapus*) tampil utuh di semua perangkat termasuk Safari iOS.
+    - **Penyederhanaan Form Tambah/Edit Dompet**: Menghilangkan selektor warna aksen manual yang usang, memfokuskan alur pembuatan dompet pada pemilihan templat penerbit/bank dengan *Live Card Preview* berpresisi tinggi.
 
 ---
 
