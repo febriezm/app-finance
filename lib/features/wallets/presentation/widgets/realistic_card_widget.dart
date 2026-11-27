@@ -24,6 +24,7 @@ class RealisticCardWidget extends StatelessWidget {
   final double? height;
   final bool isSelected;
   final bool showBalance;
+  final bool isCompact;
 
   const RealisticCardWidget({
     super.key,
@@ -36,6 +37,7 @@ class RealisticCardWidget extends StatelessWidget {
     this.height,
     this.isSelected = false,
     this.showBalance = true,
+    this.isCompact = false,
   });
 
   @override
@@ -48,6 +50,9 @@ class RealisticCardWidget extends StatelessWidget {
         : (wallet.name.isNotEmpty && wallet.name != 'preview' ? wallet.name : 'Nama Akun');
 
     const double cardRatio = 1.586; // Rasio kartu ID-1 standar ISO 7810
+
+    final bool compact = isCompact || (width != null && width! <= 220) || (height != null && height! <= 140);
+    final double cardRadius = compact ? 12.0 : 16.0;
 
     // Hitung dimensi presisi agar kartu selalu proporsional dan tidak pernah lonjong/gepeng
     final double? effectiveWidth;
@@ -74,23 +79,23 @@ class RealisticCardWidget extends StatelessWidget {
       width: effectiveWidth,
       height: effectiveHeight,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(cardRadius),
         boxShadow: [
           BoxShadow(
             color: style.accentGlow,
-            blurRadius: isSelected ? 16 : 10,
-            offset: const Offset(0, 6),
+            blurRadius: isSelected ? (compact ? 10 : 16) : (compact ? 6 : 10),
+            offset: Offset(0, compact ? 3 : 6),
             spreadRadius: isSelected ? 1 : 0,
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: compact ? 0.12 : 0.18),
+            blurRadius: compact ? 6 : 12,
+            offset: Offset(0, compact ? 2 : 4),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(cardRadius),
         child: isImageBased
             ? Stack(
                 children: [
@@ -130,7 +135,7 @@ class RealisticCardWidget extends StatelessWidget {
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(cardRadius),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.15),
                           width: 0.8,
@@ -142,20 +147,20 @@ class RealisticCardWidget extends StatelessWidget {
                   // 4. Badge Arsip (jika status dompet diarsipkan)
                   if (wallet.isArchived)
                     Positioned(
-                      top: 14,
-                      left: 18,
+                      top: compact ? 8 : 14,
+                      left: compact ? 10 : 18,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 6, vertical: compact ? 1 : 2),
                         decoration: BoxDecoration(
                           color: Colors.orange.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(compact ? 3 : 4),
                           border: Border.all(color: Colors.orange, width: 0.8),
                         ),
-                        child: const Text(
+                        child: Text(
                           'ARSIP',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 9,
+                            fontSize: compact ? 7 : 9,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.5,
                           ),
@@ -168,7 +173,7 @@ class RealisticCardWidget extends StatelessWidget {
                     Positioned(
                       top: 0,
                       bottom: 0,
-                      right: 20,
+                      right: compact ? 12 : 20,
                       child: Center(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -178,9 +183,9 @@ class RealisticCardWidget extends StatelessWidget {
                               'SALDO',
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 9,
+                                fontSize: compact ? 7 : 9,
                                 fontWeight: FontWeight.w600,
-                                letterSpacing: 0.8,
+                                letterSpacing: compact ? 0.4 : 0.8,
                                 shadows: const [
                                   Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
                                 ],
@@ -194,12 +199,12 @@ class RealisticCardWidget extends StatelessWidget {
                                 isBalanceVisible
                                     ? CurrencyFormatter.formatRupiah(currentBalance)
                                     : 'Rp ••••••••',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: compact ? 12 : 16,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: -0.2,
-                                  shadows: [
+                                  shadows: const [
                                     Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
                                     Shadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2)),
                                   ],
@@ -216,19 +221,19 @@ class RealisticCardWidget extends StatelessWidget {
                   // Bank Lainnya: pojok bawah sebelah KIRI
                   if (isBankJago)
                     Positioned(
-                      right: 22,
-                      bottom: 16,
+                      right: compact ? 12 : 22,
+                      bottom: compact ? 8 : 16,
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 180),
+                        constraints: BoxConstraints(maxWidth: compact ? 100 : 180),
                         child: Text(
                           holderName,
                           textAlign: TextAlign.right,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 13,
+                            fontSize: compact ? 9 : 13,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.5,
-                            shadows: [
+                            shadows: const [
                               Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
                               Shadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2)),
                             ],
@@ -240,19 +245,19 @@ class RealisticCardWidget extends StatelessWidget {
                     )
                   else
                     Positioned(
-                      left: 20,
-                      bottom: 16,
+                      left: compact ? 12 : 20,
+                      bottom: compact ? 8 : 16,
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 220),
+                        constraints: BoxConstraints(maxWidth: compact ? 100 : 220),
                         child: Text(
                           holderName,
                           textAlign: TextAlign.left,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 13,
+                            fontSize: compact ? 9 : 13,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.5,
-                            shadows: [
+                            shadows: const [
                               Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
                               Shadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2)),
                             ],
@@ -308,7 +313,7 @@ class RealisticCardWidget extends StatelessWidget {
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(cardRadius),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.15),
                           width: 0.8,
@@ -319,7 +324,10 @@ class RealisticCardWidget extends StatelessWidget {
 
                   // 5. Card Foreground Content
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: compact ? 10 : 18,
+                      vertical: compact ? 8 : 14,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -333,152 +341,167 @@ class RealisticCardWidget extends StatelessWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                          Text(
-                            style.issuerTitle,
-                            style: TextStyle(
-                              color: style.primaryTextColor,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.2,
-                              shadows: const [
-                                Shadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1)),
-                              ],
-                            ),
-                          ),
-                          if (wallet.isArchived) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.orange, width: 0.8),
-                              ),
-                              child: const Text(
-                                'ARSIP',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-
-                      // Bank / Institution Logo (Dihilangkan untuk tipe selain Rekening Bank)
-                      if (wallet.type == WalletType.bank)
-                        _buildIssuerLogo(style)
-                      else
-                        const SizedBox.shrink(),
-                    ],
-                  ),
-
-                  // Row B: Middle Area (EMV Chip + Contactless + Saldo Display)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      if (style.chipType != ChipType.none) ...[
-                        _buildEmvChip(style.chipType),
-                        const SizedBox(width: 8),
-                        _buildContactlessWaves(),
-                        const SizedBox(width: 12),
-                      ] else ...[
-                        // Untuk E-Wallet / Cash: Icon Badge
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withValues(alpha: 0.16),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 0.8),
-                          ),
-                          child: Icon(
-                            style.brand == RealisticCardBrand.cash
-                                ? Icons.account_balance_wallet_outlined
-                                : Icons.qr_code_2_rounded,
-                            size: 20,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
-
-                      // Hero Saldo
-                      if (showBalance)
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'SALDO',
-                                style: TextStyle(
-                                  color: style.secondaryTextColor.withValues(alpha: 0.85),
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                              const SizedBox(height: 1),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  isBalanceVisible
-                                      ? CurrencyFormatter.formatRupiah(currentBalance)
-                                      : 'Rp ••••••••',
+                                Text(
+                                  style.issuerTitle,
                                   style: TextStyle(
                                     color: style.primaryTextColor,
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.2,
+                                    fontSize: compact ? 10 : 13,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.2,
                                     shadows: const [
-                                      Shadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 1)),
+                                      Shadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1)),
                                     ],
                                   ),
                                 ),
+                                if (wallet.isArchived) ...[
+                                  SizedBox(width: compact ? 4 : 8),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 6, vertical: compact ? 1 : 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withValues(alpha: 0.3),
+                                      borderRadius: BorderRadius.circular(compact ? 3 : 4),
+                                      border: Border.all(color: Colors.orange, width: 0.8),
+                                    ),
+                                    child: Text(
+                                      'ARSIP',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: compact ? 7 : 9,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+
+                            // Bank / Institution Logo (Dihilangkan untuk tipe selain Rekening Bank)
+                            if (wallet.type == WalletType.bank)
+                              _buildIssuerLogo(style, isCompact: compact)
+                            else
+                              const SizedBox.shrink(),
+                          ],
+                        ),
+
+                        // Row B: Middle Area (EMV Chip + Contactless + Saldo Display)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (style.chipType != ChipType.none) ...[
+                              SizedBox(
+                                width: compact ? 22 : 36,
+                                height: compact ? 17 : 27,
+                                child: _buildEmvChip(style.chipType),
                               ),
+                              SizedBox(width: compact ? 4 : 8),
+                              SizedBox(
+                                width: compact ? 9 : 14,
+                                height: compact ? 11 : 16,
+                                child: _buildContactlessWaves(),
+                              ),
+                              SizedBox(width: compact ? 6 : 12),
+                            ] else ...[
+                              // Untuk E-Wallet / Cash: Icon Badge
+                              Container(
+                                width: compact ? 24 : 38,
+                                height: compact ? 24 : 38,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withValues(alpha: 0.16),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 0.8),
+                                ),
+                                child: Icon(
+                                  style.brand == RealisticCardBrand.cash
+                                      ? Icons.account_balance_wallet_outlined
+                                      : Icons.qr_code_2_rounded,
+                                  size: compact ? 13 : 20,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: compact ? 6 : 12),
                             ],
-                          ),
-                        ),
-                    ],
-                  ),
 
-                  // Row C: Bottom (Holder Name + Masked Number + Expiry + Payment Network)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Left: Nama Akun Saja (sesuai instruksi: hanya ada nama akun saja)
-                      Expanded(
-                        child: Text(
-                          holderName,
-                          style: TextStyle(
-                            color: style.primaryTextColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
-                            shadows: const [
-                              Shadow(color: Colors.black45, blurRadius: 3, offset: Offset(0, 1)),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                            // Hero Saldo
+                            if (showBalance)
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'SALDO',
+                                      style: TextStyle(
+                                        color: style.secondaryTextColor.withValues(alpha: 0.85),
+                                        fontSize: compact ? 7 : 9,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: compact ? 0.4 : 0.8,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        isBalanceVisible
+                                            ? CurrencyFormatter.formatRupiah(currentBalance)
+                                            : 'Rp ••••••••',
+                                        style: TextStyle(
+                                          color: style.primaryTextColor,
+                                          fontSize: compact ? 12 : 17,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: -0.2,
+                                          shadows: const [
+                                            Shadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 1)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
-                      ),
 
-                      // Right: Payment Network Badge (Mastercard, VISA, GPN, QRIS)
-                      _buildPaymentNetworkBadge(style.paymentNetwork),
-                    ],
+                        // Row C: Bottom (Holder Name + Masked Number + Expiry + Payment Network)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            // Left: Nama Akun Saja (sesuai instruksi: hanya ada nama akun saja)
+                            Expanded(
+                              child: Text(
+                                holderName,
+                                style: TextStyle(
+                                  color: style.primaryTextColor,
+                                  fontSize: compact ? 9 : 13,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.3,
+                                  shadows: const [
+                                    Shadow(color: Colors.black45, blurRadius: 3, offset: Offset(0, 1)),
+                                  ],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+
+                            // Right: Payment Network Badge (Mastercard, VISA, GPN, QRIS)
+                            SizedBox(
+                              height: compact ? 14 : 20,
+                              child: FittedBox(
+                                fit: BoxFit.contain,
+                                alignment: Alignment.bottomRight,
+                                child: _buildPaymentNetworkBadge(style.paymentNetwork),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
       ),
     );
 
@@ -506,7 +529,7 @@ class RealisticCardWidget extends StatelessWidget {
             unawaited(AppHaptics.light());
             onTap?.call();
           },
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(cardRadius),
           child: cardBody,
         ),
       );
@@ -516,7 +539,7 @@ class RealisticCardWidget extends StatelessWidget {
   }
 
   /// Logo Bank / Institusi
-  Widget _buildIssuerLogo(CardStyleDefinition style) {
+  Widget _buildIssuerLogo(CardStyleDefinition style, {bool isCompact = false}) {
     if (style.brand == RealisticCardBrand.bcaBlue ||
         style.brand == RealisticCardBrand.bcaGold ||
         style.brand == RealisticCardBrand.bcaPlatinum) {
@@ -525,22 +548,22 @@ class RealisticCardWidget extends StatelessWidget {
         children: [
           // Logo BCA Diamond Emblem
           Container(
-            width: 14,
-            height: 14,
+            width: isCompact ? 10 : 14,
+            height: isCompact ? 10 : 14,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(isCompact ? 2 : 3),
             ),
-            child: const Center(
-              child: Icon(Icons.change_history_rounded, size: 10, color: Color(0xFF0058A8)),
+            child: Center(
+              child: Icon(Icons.change_history_rounded, size: isCompact ? 7 : 10, color: const Color(0xFF0058A8)),
             ),
           ),
-          const SizedBox(width: 5),
-          const Text(
+          SizedBox(width: isCompact ? 3 : 5),
+          Text(
             'BCA',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: isCompact ? 11 : 14,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.8,
             ),
@@ -551,16 +574,16 @@ class RealisticCardWidget extends StatelessWidget {
 
     if (style.brand == RealisticCardBrand.bcaBlu) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 5 : 7, vertical: isCompact ? 2 : 3),
         decoration: BoxDecoration(
           color: const Color(0xFF00E5FF),
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(isCompact ? 4 : 5),
         ),
-        child: const Text(
+        child: Text(
           'blu',
           style: TextStyle(
-            color: Color(0xFF0A1931),
-            fontSize: 12,
+            color: const Color(0xFF0A1931),
+            fontSize: isCompact ? 9 : 12,
             fontWeight: FontWeight.w900,
             letterSpacing: 0.3,
           ),
@@ -569,17 +592,17 @@ class RealisticCardWidget extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 5 : 7, vertical: isCompact ? 1.5 : 2),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(isCompact ? 4 : 6),
         border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 0.6),
       ),
       child: Text(
         style.logoText,
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 11,
+          fontSize: isCompact ? 8 : 11,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.4,
         ),

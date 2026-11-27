@@ -7,7 +7,6 @@ import '../../../../app/router.dart';
 import '../../../../core/formatting/currency_formatter.dart';
 import '../../../../core/formatting/date_formatter.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/app_haptics.dart';
@@ -18,6 +17,7 @@ import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/domain/entities/transaction_with_details.dart';
 import '../../../transactions/presentation/widgets/add_transaction_sheet.dart';
 import '../../../wallets/domain/entities/wallet.dart';
+import '../../../wallets/presentation/widgets/realistic_card_widget.dart';
 
 /// Dashboard / Home Screen — MyFinance Minimal (Quiet, Clean, Premium).
 ///
@@ -299,6 +299,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
               isDark: isDark,
               surfaceColor: surfaceColor,
               borderColor: borderColor,
+              accountHolderName: authUser?.name,
             ),
 
             const SizedBox(height: 22),
@@ -797,6 +798,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
     required bool isDark,
     required Color surfaceColor,
     required Color borderColor,
+    String? accountHolderName,
   }) {
     return walletsAsync.when(
       data: (wallets) {
@@ -835,86 +837,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
         }
 
         return SizedBox(
-          height: 110,
+          height: 112,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
+            clipBehavior: Clip.none,
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
             itemCount: activeWallets.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final item = activeWallets[index];
-              final walletColor = AppIcons.parseColor(item.wallet.colorHex);
 
-              return InkWell(
+              return RealisticCardWidget(
+                wallet: item.wallet,
+                currentBalance: item.currentBalance,
+                isBalanceVisible: _isBalanceVisible,
+                accountHolderName: accountHolderName,
+                isCompact: true,
+                width: 160,
                 onTap: () {
                   AppHaptics.light();
                   context.push(AppRouter.wallets);
                 },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 154,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: surfaceColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderColor, width: 0.8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: walletColor.withValues(alpha: isDark ? 0.2 : 0.12),
-                              borderRadius: BorderRadius.circular(7),
-                            ),
-                            child: Icon(
-                              AppIcons.getIcon(item.wallet.iconKey),
-                              color: walletColor,
-                              size: 15,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              item.wallet.name,
-                              style: AppTypography.caption.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.wallet.type.displayName,
-                            style: AppTypography.caption2.copyWith(
-                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                            ),
-                          ),
-                          const SizedBox(height: 1),
-                          FinanceAmountText(
-                            amount: item.currentBalance,
-                            type: AmountDisplayType.neutral,
-                            style: AppTypography.bodyBold.copyWith(
-                              fontSize: 13,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
               );
             },
           ),

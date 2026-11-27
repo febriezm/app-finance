@@ -72,6 +72,9 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
         - **LinkAja**: Merah kobalt dinamis.
         - **AstraPay**: Biru navy korporat AstraPay dengan aksen sapphire.
         - **Cash**: Pola *guilloche geometric* hijau zamrud khas uang kertas fisik.
+    - **Kartu Kompak di Menu Home (Compact Realistic Cards on Dashboard)**:
+      - Daftar horizontal 'Dompet & Rekening' di dashboard utama kini menggunakan templat kartu fisik realistis (`RealisticCardWidget` dengan mode `isCompact: true`), menampilkan grafis kartu bank asli atau tema dinamis e-wallet/tunai dengan rasio presisi ID-1 (`1.586`, lebar 160px).
+      - Menampilkan nama akun pengguna secara otomatis, serta mendukung sinkronisasi toggle visibilitas saldo (*masking*) secara konsisten dengan kartu saldo utama.
     - **Modal Detail Dompet Adaptif & Anti-Terpotong**: Lembar detail dompet (*Wallet Detail Sheet*) dioptimalkan dengan batasan tinggi aman 88% layar dan kontainer gulir mulus (*BouncingScrollPhysics*), memastikan seluruh tombol aksi (*Riwayat Mutasi*, *Transfer*, *Edit*, *Arsipkan*, dan *Hapus*) tampil utuh di semua perangkat termasuk Safari iOS.
     - **Rasio Kartu Presisi ISO/IEC 7810 ID-1 (1.586)**: Dimensi kartu fisik di seluruh modal (rincian dompet, tambah dompet baru, dan edit dompet) dikunci pada rasio standar baku `1.586` dan batas lebar adaptif (max 420px), mencegah distorsi kartu menjadi lonjong atau gepeng di layar lebar maupun sempit.
     - **Form Tambah & Edit Dompet Dinamis & Terfilter Sesuai Tipe**:
