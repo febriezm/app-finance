@@ -161,6 +161,11 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase> with _$TransactionsD
     return select(transactionAttachmentsTable).get();
   }
 
+  /// Attachment: Watch semua attachment secara reaktif (Stream)
+  Stream<List<TransactionAttachmentEntry>> watchAllAttachments() {
+    return select(transactionAttachmentsTable).watch();
+  }
+
   /// Attachment: Hapus attachment berdasarkan ID
   Future<int> deleteAttachment(String id) {
     return (delete(transactionAttachmentsTable)..where((t) => t.id.equals(id))).go();

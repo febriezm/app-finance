@@ -433,9 +433,19 @@ final receiptMetadataForTransactionStreamProvider =
   return repo.watchReceiptMetadataForTransaction(transactionId);
 });
 
-final totalReceiptStorageBytesProvider = FutureProvider<int>((ref) async {
+final totalReceiptStorageBytesProvider = StreamProvider<int>((ref) async* {
+  final dao = ref.watch(transactionsDaoProvider);
   final repo = ref.watch(receiptMetadataRepositoryProvider);
-  return repo.getTotalReceiptStorageBytes();
+
+  await for (final attachments in dao.watchAllAttachments()) {
+    try {
+      final total = await repo.getTotalReceiptStorageBytes();
+      yield total;
+    } catch (_) {
+      final localSum = attachments.fold<int>(0, (sum, a) => sum + a.fileSize);
+      yield localSum;
+    }
+  }
 });
 
 final attachmentStorageServiceProvider = Provider<AttachmentStorageService>((ref) {

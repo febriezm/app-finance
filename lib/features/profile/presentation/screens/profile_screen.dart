@@ -274,9 +274,17 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          children: [
+        child: RefreshIndicator(
+          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+          backgroundColor: cardColor,
+          onRefresh: () async {
+            ref.invalidate(totalReceiptStorageBytesProvider);
+            ref.invalidate(authCurrentUserProvider);
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            children: [
             // Hero Profile Header
             Center(
               child: Column(
@@ -640,7 +648,8 @@ class ProfileScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildGroupCard({

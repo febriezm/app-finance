@@ -52,6 +52,7 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
 
 ## 📱 Navigasi & Tampilan Antarmuka (Apple HIG)
 
+- **Landing Page / Layar Sambutan**: Halaman pembuka minimalis (*quiet luxury design*) yang menyambut pengguna saat pertama kali membuka aplikasi tanpa sesi login aktif. Memperkenalkan pilar utama MyFinance (buku besar integer Rupiah, cloud terisolasi RLS, OCR struk, dan keamanan biometrik) dengan tombol aksi bersih dan tipografi modern tanpa garis bawah (*clean text buttons*).
 - **Tab Bar Navigasi Utama:**
   1. **Home / Dashboard**: Ringkasan saldo bersih, total aset, mutasi terkini, dan pintasan cepat.
   2. **Transaksi**: Riwayat pencatatan arus kas bulanan, filter transaksi, dan penambahan mutasi.

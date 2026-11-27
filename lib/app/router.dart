@@ -12,6 +12,7 @@ import '../features/budgets/presentation/screens/budgets_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/receipt_scanner/presentation/screens/receipt_scanner_screen.dart';
+import '../features/auth/presentation/screens/landing_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -45,18 +46,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       final authUser = ref.read(authCurrentUserProvider);
       final isLoggedIn = authUser != null;
       final loc = state.matchedLocation;
-      final isAuthRoute = loc == AppRouter.login ||
+      final isAuthRoute = loc == AppRouter.landing ||
+          loc == AppRouter.login ||
           loc == AppRouter.register ||
           loc == AppRouter.forgotPassword ||
           loc == AppRouter.resetPassword;
 
-      // 1. Jika belum login dan mencoba mengakses rute aplikasi -> paksa ke /login
+      // 1. Jika belum login dan mencoba mengakses rute aplikasi -> arahkan ke Landing Page
       if (!isLoggedIn && !isAuthRoute) {
-        return AppRouter.login;
+        return AppRouter.landing;
       }
 
-      // 2. Jika sudah login dan mencoba ke halaman login/register -> arahkan ke dashboard
-      if (isLoggedIn && (loc == AppRouter.login || loc == AppRouter.register)) {
+      // 2. Jika sudah login dan mencoba ke halaman auth/landing -> arahkan ke dashboard
+      if (isLoggedIn && (loc == AppRouter.landing || loc == AppRouter.login || loc == AppRouter.register)) {
         return AppRouter.home;
       }
 
@@ -77,6 +79,7 @@ class AppRouter {
   static const String settings = '/settings';
   static const String profile = '/profile';
   static const String receiptScanner = '/receipt-scanner';
+  static const String landing = '/welcome';
   static const String login = '/login';
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
@@ -163,6 +166,11 @@ class AppRouter {
           parentNavigatorKey: _rootNavigatorKey,
           path: receiptScanner,
           builder: (context, state) => const ReceiptScannerScreen(),
+        ),
+        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
+          path: landing,
+          builder: (context, state) => const LandingScreen(),
         ),
         GoRoute(
           parentNavigatorKey: _rootNavigatorKey,

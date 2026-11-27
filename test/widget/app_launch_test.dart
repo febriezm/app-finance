@@ -24,7 +24,7 @@ void main() {
   });
 
   group('Full Cloud Supabase App Launch & Navigation Scenarios', () {
-    testWidgets('Skenario 1: Aplikasi pertama kali dibuka tanpa sesi -> diarahkan ke LoginScreen & wajib daftar', (tester) async {
+    testWidgets('Skenario 1: Aplikasi pertama kali dibuka tanpa sesi -> diarahkan ke LandingScreen & bisa navigasi ke Login/Daftar', (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -44,18 +44,24 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      // Memastikan user langsung diarahkan ke layar Login
+      // Memastikan user langsung diarahkan ke Landing Page
+      expect(find.text('MyFinance'), findsWidgets);
+      expect(find.text('Full Cloud Supabase & Ledger Invariance'), findsOneWidget);
+      expect(find.text('Buku Besar Presisi'), findsOneWidget);
+      expect(find.text('Mulai Sekarang'), findsOneWidget);
+      expect(find.text('Sudah Memiliki Akun? Masuk'), findsOneWidget);
+
+      // Klik Sudah Memiliki Akun? Masuk -> menuju ke LoginScreen
+      await tester.tap(find.text('Sudah Memiliki Akun? Masuk'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
       expect(find.text('Masuk ke MyFinance'), findsOneWidget);
       expect(find.text('Email'), findsOneWidget);
       expect(find.text('Kata Sandi'), findsOneWidget);
       expect(find.text('Masuk'), findsOneWidget);
-
-      // Memastikan ada opsi wajib daftar jika belum punya akun
       expect(find.text('Belum memiliki akun? '), findsOneWidget);
       expect(find.text('Daftar Sekarang'), findsOneWidget);
-
-      // Memastikan tombol mode offline sudah DIHILANGKAN
-      expect(find.text('Lanjutkan Mode Offline (SQLite)'), findsNothing);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 100));
@@ -240,6 +246,12 @@ void main() {
 
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
+
+      // 0. Mulai dari Landing Page -> tap Sudah Memiliki Akun? Masuk
+      expect(find.text('Sudah Memiliki Akun? Masuk'), findsOneWidget);
+      await tester.tap(find.text('Sudah Memiliki Akun? Masuk'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       // 1. Berada di Login
       expect(find.text('Masuk ke MyFinance'), findsOneWidget);

@@ -412,9 +412,10 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
         ref.read(selectedTransactionMonthProvider.notifier).state =
             DateTime(_occurredAt.year, _occurredAt.month, 1);
 
-        // Refresh providers agar Home dan Riwayat Transaksi sinkron seketika
+        // Refresh providers agar Home, Riwayat Transaksi, dan Kapasitas Penyimpanan Struk sinkron seketika
         ref.invalidate(walletsWithBalanceStreamProvider);
         ref.invalidate(recentTransactionsStreamProvider);
+        ref.invalidate(totalReceiptStorageBytesProvider);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Transaksi struk berhasil dikonfirmasi dan dicatat!')),

@@ -322,7 +322,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     'Masuk',
                                     style: AppTypography.bodyBold.copyWith(
                                       color: isDark ? AppColors.textPrimaryDark : AppColors.primaryNavy,
-                                      decoration: TextDecoration.underline,
                                     ),
                                   ),
                                 ),

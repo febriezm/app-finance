@@ -280,7 +280,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               'Daftar Sekarang',
                               style: AppTypography.bodyBold.copyWith(
                                 color: isDark ? AppColors.textPrimaryDark : AppColors.primaryNavy,
-                                decoration: TextDecoration.underline,
                               ),
                             ),
                           ),
