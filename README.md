@@ -50,12 +50,12 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
 
 10. **Desain Kartu Fisik Realistis & Carousel Dompet Per Kategori (Physical Bank Cards & E-Wallet Themes)**
     - **UI Carousel / Dek Kartu Per Tipe**: Menu Dompet & Rekening mengelompokkan kartu ke masing-masing kategori akun (*Rekening Bank*, *Kas Tunai*, *E-Wallet*, *Lainnya/Investasi*, dan *Dompet Diarsipkan*). Setiap tipe yang memiliki lebih dari satu kartu menampilkan slider horizontal bergaya dek kartu dengan efek intip kartu berikutnya (*peek fraction 0.88*), indikator titik dinamis, dan petunjuk *Geser kartu ➔*. Kategori dengan kartu tunggal ditampilkan proporsional penuh tanpa duplikasi daftar vertikal.
-    - **Kartu Bank Realistis Sesuai Fisik Asli**:
-      - **Paspor BCA Blue**: Gradien cyan/biru dengan tekstur *pebble/gelembung air*, chip EMV, logo diamond BCA, dan jaringan Mastercard.
-      - **Paspor BCA Gold**: Gradien emas metalik dengan ilustrasi batik burung garuda (*golden bird vector*), chip emas, teks "Paspor gold debit", dan jaringan GPN/Mastercard.
-      - **Paspor BCA Platinum**: Latar hitam karbon matte dengan kaligrafi perak "P", chip silver, teks "Paspor", dan jaringan Mastercard.
-      - **blu by BCA**: Gradien *deep navy* dengan gelombang cyan khas blu by BCA, chip EMV silver, dan jaringan VISA Debit.
-      - **Bank Lainnya**: Bank Mandiri (swoosh emas Livin), BNI (gelombang toska), BRI (geometris biru), BSI (ornamen arabesque zamrud), Bank Jago (slash oranye/kuning), Jenius BTPN (oranye m-Card), dan SeaBank.
+    - **12 Aset Kartu Bank Realistis Asli (`assets/kartu_bank/`)**:
+      - Menggunakan grafis kartu debit fisik asli beresolusi tinggi dengan rasio standar ID-1 ISO 7810 (`1.586`): **BCA**, **Mandiri**, **BNI**, **BRI**, **BSI**, **BTN**, **CIMB Niaga**, **Danamon**, **Bank Jago**, **OCBC**, **Permata**, dan **SeaBank**.
+      - **Penempatan Nama Akun yang Presisi**:
+        - **Seluruh Bank Standard**: Nama akun dicetak elegan di pojok bawah sebelah kiri (*bottom-left*) sesuai standar penamaan kartu fisik.
+        - **Khusus Bank Jago**: Nama akun dicetak di pojok bawah sebelah kanan (*bottom-right*) menyesuaikan tata letak vertikal logo VISA pada kartu Jago.
+        - **Saldo Real-Time**: Ditampilkan presisi di area tengah kanan kartu tanpa menimpa logo penerbit maupun logo jaringan pembayaran (Mastercard/VISA).
     - **E-Wallet & Kas Tunai Tematik**:
       - **DANA**: Biru langit cerah dengan kurva gelombang dinamis DANA dan lencana QRIS.
       - **GoPay**: Biru toska segar (*mint*) dengan cincin konsentris logo GoPay.
@@ -67,7 +67,7 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
     - **Rasio Kartu Presisi ISO/IEC 7810 ID-1 (1.586)**: Dimensi kartu fisik di seluruh modal (rincian dompet, tambah dompet baru, dan edit dompet) dikunci pada rasio standar baku `1.586` dan batas lebar adaptif (max 420px), mencegah distorsi kartu menjadi lonjong atau gepeng di layar lebar maupun sempit.
     - **Form Tambah & Edit Dompet Dinamis & Terfilter Sesuai Tipe**:
       - Urutan form yang ergonomis: *Live Card Preview* -> *Tipe Dompet* -> *Pilih Templat/Penerbit Kartu* -> *Nama Dompet* -> *Saldo Awal*.
-      - Templat kartu difilter otomatis berdasarkan tipe yang dipilih (*Bank* hanya menampilkan bank-bank seperti BCA, Mandiri, BNI, BRI, BSI, CIMB, Jago, Jenius, Seabank; *E-Wallet* menampilkan DANA, GoPay, OVO, ShopeePay, LinkAja; *Kas Tunai* menampilkan Tunai Fisik Rupiah).
+      - Templat kartu difilter otomatis berdasarkan tipe yang dipilih (*Rekening Bank* menampilkan 12 bank: BCA, Mandiri, BNI, BRI, BSI, BTN, CIMB Niaga, Danamon, Bank Jago, OCBC, Permata, SeaBank; *E-Wallet* menampilkan DANA, GoPay, OVO, ShopeePay, LinkAja; *Kas Tunai* menampilkan Tunai Fisik Rupiah).
       - Menghilangkan selektor warna aksen manual yang usang untuk menjaga estetika kartu realistis yang konsisten.
 
 ---
@@ -94,6 +94,10 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
 ## 📂 Struktur Direktori Proyek
 
 ```text
+assets/
+├── icons/                      # Ikon-ikon aplikasi
+├── images/                     # Gambar dan ilustrasi
+└── kartu_bank/                 # 12 Aset grafis kartu debit fisik bank Indonesia (BCA, Mandiri, BNI, BRI, BSI, BTN, CIMB, Danamon, Jago, OCBC, Permata, SeaBank)
 lib/
 ├── app/                        # Bootstrapping aplikasi, App Providers, Router (GoRouter), Shell
 ├── core/

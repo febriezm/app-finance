@@ -46,7 +46,7 @@ class RealisticCardWidget extends StatelessWidget {
     final rawHolder = accountHolderName?.trim();
     final holderName = (rawHolder != null && rawHolder.isNotEmpty)
         ? rawHolder
-        : wallet.name;
+        : (wallet.name.isNotEmpty && wallet.name != 'preview' ? wallet.name : 'Nama Akun');
 
     const double cardRatio = 1.586; // Rasio kartu ID-1 standar ISO 7810
 
@@ -67,6 +67,9 @@ class RealisticCardWidget extends StatelessWidget {
       effectiveWidth = null;
       effectiveHeight = null;
     }
+
+    final isImageBased = style.imageAsset != null;
+    final isBankJago = style.brand == RealisticCardBrand.jago;
 
     Widget cardBody = Container(
       width: effectiveWidth,
@@ -89,75 +92,248 @@ class RealisticCardWidget extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          children: [
-            // 1. Base Gradient Background
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: style.gradient,
-                ),
-              ),
-            ),
-
-            // 2. Authentic Motif Texture Painter
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _CardPatternPainter(
-                  patternType: style.patternType,
-                  brand: style.brand,
-                ),
-              ),
-            ),
-
-            // 3. Subtle Glossy Specular Sheen (Apple Card light reflection)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: const Alignment(-0.8, -1.0),
-                    end: const Alignment(0.8, 1.0),
-                    stops: const [0.0, 0.4, 0.7, 1.0],
-                    colors: [
-                      Colors.white.withValues(alpha: 0.12),
-                      Colors.white.withValues(alpha: 0.03),
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.15),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // 4. Subtle Border Hairline
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    width: 0.8,
-                  ),
-                ),
-              ),
-            ),
-
-            // 5. Card Foreground Content
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: isImageBased
+            ? Stack(
                 children: [
-                  // Row A: Top (Issuer Program Title + Bank / Institution Logo)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Card Series / Title (e.g. "Paspor", "bluAccount", "DANA Balance")
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                  // 1. Gambar Asli Kartu Bank (assets/kartu_bank)
+                  Positioned.fill(
+                    child: Image.asset(
+                      style.imageAsset!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          decoration: BoxDecoration(gradient: style.gradient),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // 2. Subtle Glossy Specular Sheen (Apple Card light reflection)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: const Alignment(-0.8, -1.0),
+                          end: const Alignment(0.8, 1.0),
+                          stops: const [0.0, 0.4, 0.7, 1.0],
+                          colors: [
+                            Colors.white.withValues(alpha: 0.08),
+                            Colors.white.withValues(alpha: 0.02),
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.12),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 3. Subtle Border Hairline
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          width: 0.8,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 4. Badge Arsip (jika status dompet diarsipkan)
+                  if (wallet.isArchived)
+                    Positioned(
+                      top: 14,
+                      left: 18,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.orange, width: 0.8),
+                        ),
+                        child: const Text(
+                          'ARSIP',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // 5. Saldo Display (Area tengah kanan, aman dari logo bank & payment network)
+                  if (showBalance)
+                    Positioned(
+                      top: 0,
+                      bottom: 0,
+                      right: 20,
+                      child: Center(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'SALDO',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.8,
+                                shadows: const [
+                                  Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                isBalanceVisible
+                                    ? CurrencyFormatter.formatRupiah(currentBalance)
+                                    : 'Rp ••••••••',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.2,
+                                  shadows: [
+                                    Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+                                    Shadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // 6. Nama Akun di Pojok Bawah
+                  // Khusus Bank Jago: pojok bawah sebelah KANAN
+                  // Bank Lainnya: pojok bawah sebelah KIRI
+                  if (isBankJago)
+                    Positioned(
+                      right: 22,
+                      bottom: 16,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 180),
+                        child: Text(
+                          holderName,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            shadows: [
+                              Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+                              Shadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2)),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                  else
+                    Positioned(
+                      left: 20,
+                      bottom: 16,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 220),
+                        child: Text(
+                          holderName,
+                          textAlign: TextAlign.left,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            shadows: [
+                              Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+                              Shadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2)),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                ],
+              )
+            : Stack(
+                children: [
+                  // 1. Base Gradient Background
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: style.gradient,
+                      ),
+                    ),
+                  ),
+
+                  // 2. Authentic Motif Texture Painter
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _CardPatternPainter(
+                        patternType: style.patternType,
+                        brand: style.brand,
+                      ),
+                    ),
+                  ),
+
+                  // 3. Subtle Glossy Specular Sheen (Apple Card light reflection)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: const Alignment(-0.8, -1.0),
+                          end: const Alignment(0.8, 1.0),
+                          stops: const [0.0, 0.4, 0.7, 1.0],
+                          colors: [
+                            Colors.white.withValues(alpha: 0.12),
+                            Colors.white.withValues(alpha: 0.03),
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.15),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 4. Subtle Border Hairline
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          width: 0.8,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 5. Card Foreground Content
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Row A: Top (Issuer Program Title + Bank / Institution Logo)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Card Series / Title (e.g. "Paspor", "bluAccount", "DANA Balance")
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                           Text(
                             style.issuerTitle,
                             style: TextStyle(

@@ -1241,7 +1241,7 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                         id: 'preview',
                         name: _nameController.text.trim().isNotEmpty
                             ? _nameController.text.trim()
-                            : 'BCA Paspor Blue',
+                            : 'BCA',
                         type: _selectedType,
                         openingBalance: _openingBalance,
                         openingDate: DateTime.now().toIso8601String(),
@@ -1252,6 +1252,7 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                       ),
                       currentBalance: _openingBalance,
                       isBalanceVisible: true,
+                      accountHolderName: ref.watch(authCurrentUserProvider)?.name,
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -1670,6 +1671,7 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                       ),
                       currentBalance: ref.watch(walletsWithBalanceStreamProvider).value?.where((w) => w.wallet.id == widget.wallet.id).firstOrNull?.currentBalance ?? widget.wallet.openingBalance,
                       isBalanceVisible: true,
+                      accountHolderName: ref.watch(authCurrentUserProvider)?.name,
                     ),
                   ),
                   const SizedBox(height: 16),

@@ -3,17 +3,21 @@ import '../../domain/entities/wallet.dart';
 
 /// Jenis / Brand kartu realistis yang didukung
 enum RealisticCardBrand {
-  bcaBlue, // Paspor BCA Blue (Gambar 2 kiri)
-  bcaGold, // Paspor BCA Gold (Gambar 2 tengah)
-  bcaPlatinum, // Paspor BCA Platinum (Gambar 2 kanan)
-  bcaBlu, // blu by BCA (Gambar 1)
+  bcaBlue, // BCA
+  bcaGold, // Paspor BCA Gold
+  bcaPlatinum, // Paspor BCA Platinum
+  bcaBlu, // blu by BCA
   mandiri, // Bank Mandiri
   bni, // Bank BNI
   bri, // Bank BRI
   bsi, // Bank Syariah Indonesia
+  btn, // Bank BTN
   cimb, // CIMB Niaga
+  danamon, // Bank Danamon
   jago, // Bank Jago
   jenius, // Jenius BTPN
+  ocbc, // Bank OCBC
+  permata, // Permata Bank
   seabank, // SeaBank
   dana, // DANA E-Wallet
   gopay, // GoPay E-Wallet
@@ -70,6 +74,7 @@ class CardStyleDefinition {
   final PaymentNetwork paymentNetwork;
   final CardPatternType patternType;
   final Color accentGlow;
+  final String? imageAsset;
 
   const CardStyleDefinition({
     required this.brand,
@@ -83,6 +88,7 @@ class CardStyleDefinition {
     this.paymentNetwork = PaymentNetwork.mastercard,
     this.patternType = CardPatternType.cleanMinimal,
     this.accentGlow = const Color(0x33000000),
+    this.imageAsset,
   });
 }
 
@@ -91,22 +97,189 @@ class CardThemeHelper {
   CardThemeHelper._();
 
   static const List<CardStyleDefinition> allPresets = [
-    // 1. BCA Family
+    // 1. Bank Cards (Sesuai folder assets/kartu_bank)
     CardStyleDefinition(
       brand: RealisticCardBrand.bcaBlue,
-      displayName: 'BCA Paspor Blue',
-      issuerTitle: 'Paspor',
+      displayName: 'BCA',
+      issuerTitle: 'Paspor Platinum',
       logoText: 'BCA',
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF007ECC), Color(0xFF0058A8), Color(0xFF003770)],
+        colors: [Color(0xFF232B30), Color(0xFF14191C)],
       ),
       chipType: ChipType.silver,
       paymentNetwork: PaymentNetwork.mastercard,
-      patternType: CardPatternType.bcaPebbles,
+      imageAsset: 'assets/kartu_bank/bank_bca.png',
       accentGlow: Color(0x4D0058A8),
     ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.mandiri,
+      displayName: 'Mandiri',
+      issuerTitle: 'Debit Platinum',
+      logoText: 'Mandiri',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF4A5568), Color(0xFF1A202C)],
+      ),
+      chipType: ChipType.silver,
+      paymentNetwork: PaymentNetwork.mastercard,
+      imageAsset: 'assets/kartu_bank/bank_mandiri.png',
+      accentGlow: Color(0x4D4A5568),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.bni,
+      displayName: 'BNI',
+      issuerTitle: 'Debit Platinum',
+      logoText: 'BNI',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF2D3748), Color(0xFF1A202C)],
+      ),
+      chipType: ChipType.silver,
+      paymentNetwork: PaymentNetwork.mastercard,
+      imageAsset: 'assets/kartu_bank/bank_bni.png',
+      accentGlow: Color(0x4DF15A24),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.bri,
+      displayName: 'BRI',
+      issuerTitle: 'BritAma',
+      logoText: 'BRI',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF1A202C), Color(0xFF0F172A)],
+      ),
+      chipType: ChipType.silver,
+      paymentNetwork: PaymentNetwork.mastercard,
+      imageAsset: 'assets/kartu_bank/bank_bri.png',
+      accentGlow: Color(0x4D00529B),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.bsi,
+      displayName: 'BSI',
+      issuerTitle: 'Debit Platinum',
+      logoText: 'BSI',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF334155), Color(0xFF1E293B)],
+      ),
+      chipType: ChipType.gold,
+      paymentNetwork: PaymentNetwork.visa,
+      imageAsset: 'assets/kartu_bank/bank_bsi.png',
+      accentGlow: Color(0x4D00A39D),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.btn,
+      displayName: 'BTN',
+      issuerTitle: 'Prioritas',
+      logoText: 'BTN',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+      ),
+      chipType: ChipType.gold,
+      paymentNetwork: PaymentNetwork.visa,
+      imageAsset: 'assets/kartu_bank/bank_btn.png',
+      accentGlow: Color(0x4DB45309),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.cimb,
+      displayName: 'CIMB Niaga',
+      issuerTitle: 'Preferred',
+      logoText: 'CIMB',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF881337), Color(0xFF4C0519)],
+      ),
+      chipType: ChipType.gold,
+      paymentNetwork: PaymentNetwork.mastercard,
+      imageAsset: 'assets/kartu_bank/bank_cimb_niaga.png',
+      accentGlow: Color(0x4DE11D48),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.danamon,
+      displayName: 'Danamon',
+      issuerTitle: 'PayLight',
+      logoText: 'Danamon',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF1F2937), Color(0xFF111827)],
+      ),
+      chipType: ChipType.silver,
+      paymentNetwork: PaymentNetwork.mastercard,
+      imageAsset: 'assets/kartu_bank/bank_danamon.png',
+      accentGlow: Color(0x4DF97316),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.jago,
+      displayName: 'Bank Jago',
+      issuerTitle: 'Jago',
+      logoText: 'jago',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF581C87), Color(0xFF18181B)],
+      ),
+      chipType: ChipType.none,
+      paymentNetwork: PaymentNetwork.visa,
+      imageAsset: 'assets/kartu_bank/bank_jago.png',
+      accentGlow: Color(0x4DA855F7),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.ocbc,
+      displayName: 'OCBC',
+      issuerTitle: 'Premier Banking',
+      logoText: 'OCBC',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+      ),
+      chipType: ChipType.silver,
+      paymentNetwork: PaymentNetwork.mastercard,
+      imageAsset: 'assets/kartu_bank/bank_ocbc.png',
+      accentGlow: Color(0x4DEAB308),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.permata,
+      displayName: 'Permata',
+      issuerTitle: 'Priority',
+      logoText: 'Permata',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF1C1917), Color(0xFF0C0A09)],
+      ),
+      chipType: ChipType.silver,
+      paymentNetwork: PaymentNetwork.visa,
+      imageAsset: 'assets/kartu_bank/bank_permata.png',
+      accentGlow: Color(0x4DCA8A04),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.seabank,
+      displayName: 'SeaBank',
+      issuerTitle: 'Debit',
+      logoText: 'SeaBank',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFB923C), Color(0xFFEA580C)],
+      ),
+      chipType: ChipType.none,
+      paymentNetwork: PaymentNetwork.mastercard,
+      imageAsset: 'assets/kartu_bank/seabank.png',
+      accentGlow: Color(0x4DF97316),
+    ),
+
+    // Bank Tambahan & Variasi BCA
     CardStyleDefinition(
       brand: RealisticCardBrand.bcaGold,
       displayName: 'BCA Paspor Gold',
@@ -154,98 +327,6 @@ class CardThemeHelper {
       patternType: CardPatternType.bluWaves,
       accentGlow: Color(0x4D00E5FF),
     ),
-
-    // 2. Bank Lainnya
-    CardStyleDefinition(
-      brand: RealisticCardBrand.mandiri,
-      displayName: 'Bank Mandiri',
-      issuerTitle: 'Mandiri Debit',
-      logoText: 'mandırı',
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF001B3A), Color(0xFF002D62), Color(0xFF00142B)],
-      ),
-      chipType: ChipType.gold,
-      paymentNetwork: PaymentNetwork.visa,
-      patternType: CardPatternType.mandiriSwoosh,
-      accentGlow: Color(0x4D002D62),
-    ),
-    CardStyleDefinition(
-      brand: RealisticCardBrand.bni,
-      displayName: 'Bank BNI',
-      issuerTitle: 'BNI Taplus',
-      logoText: 'BNI',
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF005E6A), Color(0xFF00434C), Color(0xFF00272B)],
-      ),
-      chipType: ChipType.silver,
-      paymentNetwork: PaymentNetwork.mastercard,
-      patternType: CardPatternType.bniWave,
-      accentGlow: Color(0x4D005E6A),
-    ),
-    CardStyleDefinition(
-      brand: RealisticCardBrand.bri,
-      displayName: 'Bank BRI',
-      issuerTitle: 'BritAma',
-      logoText: 'BRI',
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF00529C), Color(0xFF0A3B75), Color(0xFF031E3D)],
-      ),
-      chipType: ChipType.silver,
-      paymentNetwork: PaymentNetwork.mastercard,
-      patternType: CardPatternType.briGeometric,
-      accentGlow: Color(0x4D00529C),
-    ),
-    CardStyleDefinition(
-      brand: RealisticCardBrand.bsi,
-      displayName: 'Bank Syariah Indonesia (BSI)',
-      issuerTitle: 'BSI Debit',
-      logoText: 'BSI',
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF00A39D), Color(0xFF006B66), Color(0xFF003D3B)],
-      ),
-      chipType: ChipType.gold,
-      paymentNetwork: PaymentNetwork.gpn,
-      patternType: CardPatternType.bsiArabesque,
-      accentGlow: Color(0x4D00A39D),
-    ),
-    CardStyleDefinition(
-      brand: RealisticCardBrand.cimb,
-      displayName: 'CIMB Niaga',
-      issuerTitle: 'OCTO Debit',
-      logoText: 'CIMB',
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF8B0000), Color(0xFF6B0000), Color(0xFF450000)],
-      ),
-      chipType: ChipType.silver,
-      paymentNetwork: PaymentNetwork.mastercard,
-      patternType: CardPatternType.cleanMinimal,
-      accentGlow: Color(0x4D8B0000),
-    ),
-    CardStyleDefinition(
-      brand: RealisticCardBrand.jago,
-      displayName: 'Bank Jago',
-      issuerTitle: 'Kantong Utama',
-      logoText: 'jago',
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF2A0845), Color(0xFF1B052E), Color(0xFF10021C)],
-      ),
-      chipType: ChipType.silver,
-      paymentNetwork: PaymentNetwork.visa,
-      patternType: CardPatternType.jagoSlash,
-      accentGlow: Color(0x4DFF7A00),
-    ),
     CardStyleDefinition(
       brand: RealisticCardBrand.jenius,
       displayName: 'Jenius (BTPN)',
@@ -260,21 +341,6 @@ class CardThemeHelper {
       paymentNetwork: PaymentNetwork.visa,
       patternType: CardPatternType.cleanMinimal,
       accentGlow: Color(0x4DFF7A00),
-    ),
-    CardStyleDefinition(
-      brand: RealisticCardBrand.seabank,
-      displayName: 'SeaBank',
-      issuerTitle: 'SeaBank Debit',
-      logoText: 'SeaBank',
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFFF5722), Color(0xFFE64A19), Color(0xFFBF360C)],
-      ),
-      chipType: ChipType.silver,
-      paymentNetwork: PaymentNetwork.mastercard,
-      patternType: CardPatternType.cleanMinimal,
-      accentGlow: Color(0x4DFF5722),
     ),
 
     // 3. E-Wallet
@@ -433,17 +499,29 @@ class CardThemeHelper {
     if (lowerName.contains('bsi') || lowerName.contains('syariah')) {
       return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.bsi);
     }
+    if (lowerName.contains('btn')) {
+      return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.btn);
+    }
     if (lowerName.contains('cimb') || lowerName.contains('octo')) {
       return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.cimb);
+    }
+    if (lowerName.contains('danamon')) {
+      return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.danamon);
     }
     if (lowerName.contains('jago')) {
       return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.jago);
     }
-    if (lowerName.contains('jenius') || lowerName.contains('btpn')) {
-      return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.jenius);
+    if (lowerName.contains('ocbc')) {
+      return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.ocbc);
+    }
+    if (lowerName.contains('permata')) {
+      return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.permata);
     }
     if (lowerName.contains('seabank') || lowerName.contains('sea bank')) {
       return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.seabank);
+    }
+    if (lowerName.contains('jenius') || lowerName.contains('btpn')) {
+      return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.jenius);
     }
 
     // 3. Deteksi E-Wallet
@@ -490,16 +568,16 @@ class CardThemeHelper {
       case WalletType.bank:
         return allPresets.where((p) =>
           p.brand == RealisticCardBrand.bcaBlue ||
-          p.brand == RealisticCardBrand.bcaGold ||
-          p.brand == RealisticCardBrand.bcaPlatinum ||
-          p.brand == RealisticCardBrand.bcaBlu ||
           p.brand == RealisticCardBrand.mandiri ||
           p.brand == RealisticCardBrand.bni ||
           p.brand == RealisticCardBrand.bri ||
           p.brand == RealisticCardBrand.bsi ||
+          p.brand == RealisticCardBrand.btn ||
           p.brand == RealisticCardBrand.cimb ||
+          p.brand == RealisticCardBrand.danamon ||
           p.brand == RealisticCardBrand.jago ||
-          p.brand == RealisticCardBrand.jenius ||
+          p.brand == RealisticCardBrand.ocbc ||
+          p.brand == RealisticCardBrand.permata ||
           p.brand == RealisticCardBrand.seabank
         ).toList();
 
