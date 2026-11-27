@@ -56,18 +56,31 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
         - **Seluruh Bank Standard**: Nama akun dicetak elegan di pojok bawah sebelah kiri (*bottom-left*) sesuai standar penamaan kartu fisik.
         - **Khusus Bank Jago**: Nama akun dicetak di pojok bawah sebelah kanan (*bottom-right*) menyesuaikan tata letak vertikal logo VISA pada kartu Jago.
         - **Saldo Real-Time**: Ditampilkan presisi di area tengah kanan kartu tanpa menimpa logo penerbit maupun logo jaringan pembayaran (Mastercard/VISA).
-    - **E-Wallet & Kas Tunai Tematik**:
-      - **DANA**: Biru langit cerah dengan kurva gelombang dinamis DANA dan lencana QRIS.
-      - **GoPay**: Biru toska segar (*mint*) dengan cincin konsentris logo GoPay.
-      - **OVO**: Ungu royal dengan aksen cahaya magenta.
-      - **ShopeePay**: Oranye cerah khas Shopee dengan aksen tas belanja.
-      - **LinkAja**: Merah kobalt khas LinkAja.
-      - **Kas Tunai**: Pola *guilloche geometric* hijau zamrud menyerupai tekstur uang kertas Rupiah fisik.
+    - **E-Wallet & Kas Tunai Tematik (Minimalist & Clean Card Layout)**:
+      - **Penyederhanaan Tata Letak Kartu Non-Bank**:
+        - Teks/logo di pojok kanan atas **dihilangkan** secara bersih.
+        - Area pojok kiri bawah **hanya memuat nama akun pemilik** secara rapi tanpa nomor kartu atau teks masa berlaku.
+        - Teks di pojok kiri atas otomatis menampilkan nama templat:
+          - **Uang Tunai (Cash)**: `Cash` (dengan pola *guilloche geometric* zamrud).
+          - **E-Wallet**: `GoPay`, `OVO`, `DANA`, `ShopeePay`, `LinkAja`, dan `AstraPay`.
+          - **Lainnya / Portofolio**: Mempertahankan header portofolio aset minimalis.
+      - **Palet Visual Khusus**:
+        - **GoPay**: Biru toska segar (*mint*) dengan cincin konsentris logo GoPay.
+        - **OVO**: Ungu royal dengan aksen cahaya magenta.
+        - **DANA**: Biru langit cerah dengan kurva gelombang dinamis DANA.
+        - **ShopeePay**: Oranye cerah khas Shopee dengan aksen tas belanja.
+        - **LinkAja**: Merah kobalt dinamis.
+        - **AstraPay**: Biru navy korporat AstraPay dengan aksen sapphire.
+        - **Cash**: Pola *guilloche geometric* hijau zamrud khas uang kertas fisik.
     - **Modal Detail Dompet Adaptif & Anti-Terpotong**: Lembar detail dompet (*Wallet Detail Sheet*) dioptimalkan dengan batasan tinggi aman 88% layar dan kontainer gulir mulus (*BouncingScrollPhysics*), memastikan seluruh tombol aksi (*Riwayat Mutasi*, *Transfer*, *Edit*, *Arsipkan*, dan *Hapus*) tampil utuh di semua perangkat termasuk Safari iOS.
     - **Rasio Kartu Presisi ISO/IEC 7810 ID-1 (1.586)**: Dimensi kartu fisik di seluruh modal (rincian dompet, tambah dompet baru, dan edit dompet) dikunci pada rasio standar baku `1.586` dan batas lebar adaptif (max 420px), mencegah distorsi kartu menjadi lonjong atau gepeng di layar lebar maupun sempit.
     - **Form Tambah & Edit Dompet Dinamis & Terfilter Sesuai Tipe**:
       - Urutan form yang ergonomis: *Live Card Preview* -> *Tipe Dompet* -> *Pilih Templat/Penerbit Kartu* -> *Nama Dompet* -> *Saldo Awal*.
-      - Templat kartu difilter otomatis berdasarkan tipe yang dipilih (*Rekening Bank* menampilkan 12 bank: BCA, Mandiri, BNI, BRI, BSI, BTN, CIMB Niaga, Danamon, Bank Jago, OCBC, Permata, SeaBank; *E-Wallet* menampilkan DANA, GoPay, OVO, ShopeePay, LinkAja; *Kas Tunai* menampilkan Tunai Fisik Rupiah).
+      - Templat kartu difilter otomatis berdasarkan tipe yang dipilih:
+        - *Rekening Bank*: Menampilkan 12 bank (BCA, Mandiri, BNI, BRI, BSI, BTN, CIMB Niaga, Danamon, Bank Jago, OCBC, Permata, SeaBank).
+        - *E-Wallet*: Menampilkan 6 dompet digital resmi (GoPay, OVO, DANA, ShopeePay, LinkAja, AstraPay).
+        - *Kas Tunai*: Menampilkan templat Cash.
+        - *Lainnya*: Menampilkan Portofolio Investasi dan Titanium Generic.
       - Menghilangkan selektor warna aksen manual yang usang untuk menjaga estetika kartu realistis yang konsisten.
 
 ---

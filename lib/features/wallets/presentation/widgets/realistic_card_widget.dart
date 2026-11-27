@@ -41,7 +41,6 @@ class RealisticCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = CardThemeHelper.resolveStyle(wallet);
-    final cardSuffix = CardThemeHelper.getCardNumberSuffix(wallet.id);
 
     final rawHolder = accountHolderName?.trim();
     final holderName = (rawHolder != null && rawHolder.isNotEmpty)
@@ -369,8 +368,11 @@ class RealisticCardWidget extends StatelessWidget {
                         ],
                       ),
 
-                      // Bank / Institution Logo
-                      _buildIssuerLogo(style),
+                      // Bank / Institution Logo (Dihilangkan untuk tipe selain Rekening Bank)
+                      if (wallet.type == WalletType.bank)
+                        _buildIssuerLogo(style)
+                      else
+                        const SizedBox.shrink(),
                     ],
                   ),
 
@@ -450,56 +452,21 @@ class RealisticCardWidget extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Left: Cardholder Name & Masked Number
+                      // Left: Nama Akun Saja (sesuai instruksi: hanya ada nama akun saja)
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              holderName,
-                              style: TextStyle(
-                                color: style.primaryTextColor,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.3,
-                                shadows: const [
-                                  Shadow(color: Colors.black45, blurRadius: 3, offset: Offset(0, 1)),
-                                ],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 3),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '•••• $cardSuffix',
-                                    style: TextStyle(
-                                      color: style.secondaryTextColor,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    'VALID THRU 12/29',
-                                    style: TextStyle(
-                                      color: style.secondaryTextColor.withValues(alpha: 0.75),
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w500,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          holderName,
+                          style: TextStyle(
+                            color: style.primaryTextColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                            shadows: const [
+                              Shadow(color: Colors.black45, blurRadius: 3, offset: Offset(0, 1)),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
 

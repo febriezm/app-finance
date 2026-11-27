@@ -1241,7 +1241,7 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                         id: 'preview',
                         name: _nameController.text.trim().isNotEmpty
                             ? _nameController.text.trim()
-                            : 'BCA',
+                            : (_selectedType == WalletType.cash ? 'Cash' : (_selectedType == WalletType.eWallet ? 'GoPay' : 'BCA')),
                         type: _selectedType,
                         openingBalance: _openingBalance,
                         openingDate: DateTime.now().toIso8601String(),

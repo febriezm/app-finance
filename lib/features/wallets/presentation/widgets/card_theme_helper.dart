@@ -24,6 +24,7 @@ enum RealisticCardBrand {
   ovo, // OVO E-Wallet
   shopeepay, // ShopeePay
   linkaja, // LinkAja
+  astrapay, // AstraPay E-Wallet
   cash, // Kas Tunai / Brankas
   investment, // Investasi / Reksadana / Saham
   generic, // Kartu Umum / Titanium
@@ -343,26 +344,11 @@ class CardThemeHelper {
       accentGlow: Color(0x4DFF7A00),
     ),
 
-    // 3. E-Wallet
-    CardStyleDefinition(
-      brand: RealisticCardBrand.dana,
-      displayName: 'DANA E-Wallet',
-      issuerTitle: 'DANA Balance',
-      logoText: 'DANA',
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF118EEA), Color(0xFF0C72BF), Color(0xFF00528F)],
-      ),
-      chipType: ChipType.none,
-      paymentNetwork: PaymentNetwork.qris,
-      patternType: CardPatternType.danaCurves,
-      accentGlow: Color(0x4D118EEA),
-    ),
+    // 3. E-Wallet (GoPay, OVO, DANA, ShopeePay, LinkAja, AstraPay)
     CardStyleDefinition(
       brand: RealisticCardBrand.gopay,
       displayName: 'GoPay',
-      issuerTitle: 'GoPay Saldo',
+      issuerTitle: 'GoPay',
       logoText: 'gopay',
       gradient: LinearGradient(
         begin: Alignment.topLeft,
@@ -377,7 +363,7 @@ class CardThemeHelper {
     CardStyleDefinition(
       brand: RealisticCardBrand.ovo,
       displayName: 'OVO',
-      issuerTitle: 'OVO Cash',
+      issuerTitle: 'OVO',
       logoText: 'OVO',
       gradient: LinearGradient(
         begin: Alignment.topLeft,
@@ -388,6 +374,21 @@ class CardThemeHelper {
       paymentNetwork: PaymentNetwork.qris,
       patternType: CardPatternType.ovoCircles,
       accentGlow: Color(0x4D4C3494),
+    ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.dana,
+      displayName: 'DANA',
+      issuerTitle: 'DANA',
+      logoText: 'DANA',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF118EEA), Color(0xFF0C72BF), Color(0xFF00528F)],
+      ),
+      chipType: ChipType.none,
+      paymentNetwork: PaymentNetwork.qris,
+      patternType: CardPatternType.danaCurves,
+      accentGlow: Color(0x4D118EEA),
     ),
     CardStyleDefinition(
       brand: RealisticCardBrand.shopeepay,
@@ -407,7 +408,7 @@ class CardThemeHelper {
     CardStyleDefinition(
       brand: RealisticCardBrand.linkaja,
       displayName: 'LinkAja',
-      issuerTitle: 'LinkAja Saldo',
+      issuerTitle: 'LinkAja',
       logoText: 'LinkAja!',
       gradient: LinearGradient(
         begin: Alignment.topLeft,
@@ -419,12 +420,27 @@ class CardThemeHelper {
       patternType: CardPatternType.cleanMinimal,
       accentGlow: Color(0x4DE21B24),
     ),
+    CardStyleDefinition(
+      brand: RealisticCardBrand.astrapay,
+      displayName: 'AstraPay',
+      issuerTitle: 'AstraPay',
+      logoText: 'AstraPay',
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF002C6C), Color(0xFF004394), Color(0xFF001838)],
+      ),
+      chipType: ChipType.none,
+      paymentNetwork: PaymentNetwork.qris,
+      patternType: CardPatternType.cleanMinimal,
+      accentGlow: Color(0x4D004394),
+    ),
 
     // 4. Tunai & Investasi
     CardStyleDefinition(
       brand: RealisticCardBrand.cash,
-      displayName: 'Kas Tunai (Cash)',
-      issuerTitle: 'DOMPET TUNAI',
+      displayName: 'Cash',
+      issuerTitle: 'Cash',
       logoText: 'CASH',
       gradient: LinearGradient(
         begin: Alignment.topLeft,
@@ -524,21 +540,24 @@ class CardThemeHelper {
       return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.jenius);
     }
 
-    // 3. Deteksi E-Wallet
-    if (lowerName.contains('dana')) {
-      return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.dana);
-    }
+    // 3. Deteksi E-Wallet (GoPay, OVO, DANA, ShopeePay, LinkAja, AstraPay)
     if (lowerName.contains('gopay') || lowerName.contains('gojek')) {
       return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.gopay);
     }
     if (lowerName.contains('ovo')) {
       return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.ovo);
     }
+    if (lowerName.contains('dana')) {
+      return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.dana);
+    }
     if (lowerName.contains('shopee')) {
       return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.shopeepay);
     }
     if (lowerName.contains('linkaja') || lowerName.contains('link aja')) {
       return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.linkaja);
+    }
+    if (lowerName.contains('astrapay') || lowerName.contains('astra pay')) {
+      return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.astrapay);
     }
 
     // 4. Deteksi Tunai & Investasi
@@ -554,7 +573,7 @@ class CardThemeHelper {
       case WalletType.bank:
         return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.bcaBlue);
       case WalletType.eWallet:
-        return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.dana);
+        return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.gopay);
       case WalletType.cash:
         return allPresets.firstWhere((p) => p.brand == RealisticCardBrand.cash);
       case WalletType.other:
@@ -582,13 +601,14 @@ class CardThemeHelper {
         ).toList();
 
       case WalletType.eWallet:
-        return allPresets.where((p) =>
-          p.brand == RealisticCardBrand.dana ||
-          p.brand == RealisticCardBrand.gopay ||
-          p.brand == RealisticCardBrand.ovo ||
-          p.brand == RealisticCardBrand.shopeepay ||
-          p.brand == RealisticCardBrand.linkaja
-        ).toList();
+        return [
+          allPresets.firstWhere((p) => p.brand == RealisticCardBrand.gopay),
+          allPresets.firstWhere((p) => p.brand == RealisticCardBrand.ovo),
+          allPresets.firstWhere((p) => p.brand == RealisticCardBrand.dana),
+          allPresets.firstWhere((p) => p.brand == RealisticCardBrand.shopeepay),
+          allPresets.firstWhere((p) => p.brand == RealisticCardBrand.linkaja),
+          allPresets.firstWhere((p) => p.brand == RealisticCardBrand.astrapay),
+        ];
 
       case WalletType.cash:
         return allPresets.where((p) =>
