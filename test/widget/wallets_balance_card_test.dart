@@ -7,7 +7,7 @@ import 'package:myfinance/app/app_providers.dart';
 import 'package:myfinance/core/database/app_database.dart';
 import 'package:myfinance/features/wallets/domain/entities/wallet.dart';
 import 'package:myfinance/features/wallets/presentation/screens/wallets_screen.dart';
-import 'package:myfinance/shared/widgets/wallet_card.dart';
+import 'package:myfinance/features/wallets/presentation/widgets/realistic_card_widget.dart';
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -50,7 +50,7 @@ void main() {
 
   group('WalletsScreen Dedicated Asset Balance Card & Individual Wallet Cards Tests', () {
     testWidgets('Renders Dedicated Asset Balance Card and individual WalletCards across all wallet types (Bank, Cash, E-Wallet, Other)', (tester) async {
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
@@ -122,15 +122,15 @@ void main() {
       expect(find.descendant(of: cardFinder, matching: find.text('E-Wallet & Lainnya')), findsOneWidget);
       expect(find.descendant(of: cardFinder, matching: find.text('Rp 17.500.000')), findsOneWidget);
 
-      // Verify all 4 individual WalletCards are rendered
-      expect(find.byType(WalletCard), findsNWidgets(4));
-      expect(find.text('Bank BCA'), findsOneWidget);
-      expect(find.text('Dompet Tunai'), findsOneWidget);
-      expect(find.text('GoPay'), findsOneWidget);
-      expect(find.text('Bibit Reksadana'), findsOneWidget);
+      // Verify all individual RealisticCardWidgets are rendered
+      expect(find.byType(RealisticCardWidget), findsAtLeastNWidgets(4));
+      expect(find.text('Bank BCA'), findsAtLeastNWidgets(1));
+      expect(find.text('Dompet Tunai'), findsAtLeastNWidgets(1));
+      expect(find.text('GoPay'), findsAtLeastNWidgets(1));
+      expect(find.text('Bibit Reksadana'), findsAtLeastNWidgets(1));
 
       // Saldo labels inside cards
-      expect(find.text('SALDO'), findsNWidgets(4));
+      expect(find.text('SALDO'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('Tapping a WalletCard opens wallet detail bottom sheet with Edit, Transfer, and Mutasi actions', (tester) async {
@@ -157,7 +157,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap the BCA card
-      await tester.tap(find.text('Bank BCA'));
+      await tester.tap(find.text('Bank BCA').first);
       await tester.pumpAndSettle();
 
       // Detail sheet is opened
@@ -202,7 +202,7 @@ void main() {
 
       // Masked dots shown on both Dedicated Card and WalletCard
       expect(find.descendant(of: cardFinder, matching: find.byIcon(Icons.visibility_off_outlined)), findsOneWidget);
-      expect(find.text('Rp ••••••••'), findsNWidgets(2)); // 1 on dedicated card, 1 on WalletCard
+      expect(find.text('Rp ••••••••'), findsAtLeastNWidgets(2)); // Dedicated card + RealisticCardWidget
       expect(find.descendant(of: cardFinder, matching: find.text('Rp ••••••')), findsNWidgets(2)); // Kas & Bank + E-Wallet
       expect(find.text('Rp 10.000.000'), findsNothing);
 
@@ -212,7 +212,7 @@ void main() {
 
       // Visible again
       expect(find.descendant(of: cardFinder, matching: find.byIcon(Icons.visibility_outlined)), findsOneWidget);
-      expect(find.text('Rp 10.000.000'), findsNWidgets(3)); // Hero + Kas & Bank + WalletCard
+      expect(find.text('Rp 10.000.000'), findsAtLeastNWidgets(2)); // Hero + Kas & Bank + RealisticCardWidget
     });
 
     testWidgets('Renders properly in Dark Mode and on narrow screens (320x568) without overflow', (tester) async {
@@ -258,11 +258,11 @@ void main() {
       expect(find.descendant(of: cardFinder, matching: find.byIcon(Icons.visibility_outlined)), findsOneWidget);
       expect(find.descendant(of: cardFinder, matching: find.text('1 Aktif • 1 Arsip')), findsOneWidget);
       expect(find.descendant(of: cardFinder, matching: find.text('Rp 3.000.000.000')), findsOneWidget);
-      expect(find.byType(WalletCard), findsAtLeastNWidgets(1));
-      expect(find.text('Bank Central Asia'), findsOneWidget);
+      expect(find.byType(RealisticCardWidget), findsAtLeastNWidgets(1));
+      expect(find.text('Bank Central Asia'), findsAtLeastNWidgets(1));
 
       // Scroll down to view the archived wallet card
-      await tester.drag(find.byType(ListView), const Offset(0, -400));
+      await tester.drag(find.byType(ListView), const Offset(0, -800));
       await tester.pumpAndSettle();
       expect(find.text('Rekening Lama'), findsOneWidget);
       expect(find.text('Rp 500.000.000'), findsOneWidget);

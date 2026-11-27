@@ -14,6 +14,9 @@ import '../../../reports/presentation/widgets/report_transactions_sheet.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/presentation/widgets/add_transaction_sheet.dart';
 import '../../domain/entities/wallet.dart';
+import '../widgets/card_theme_helper.dart';
+import '../widgets/realistic_card_widget.dart';
+import '../widgets/wallet_card_carousel.dart';
 
 /// Halaman Dompet & Rekening — MyFinance Minimal (Quiet, Clean, Premium).
 ///
@@ -84,7 +87,19 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+
+              // Visual Realistic Physical Card (Gambar 1 & 2)
+              Center(
+                child: RealisticCardWidget(
+                  wallet: item.wallet,
+                  currentBalance: item.currentBalance,
+                  isBalanceVisible: _isBalanceVisible,
+                  accountHolderName: ref.read(authCurrentUserProvider)?.name,
+                  height: 175,
+                ),
+              ),
+              const SizedBox(height: 18),
 
               // Wallet Header (Icon, Name, Type)
               Row(
@@ -753,6 +768,8 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
           final cashWallets = wallets.where((w) => w.wallet.type == WalletType.cash).toList();
           final eWalletWallets = wallets.where((w) => w.wallet.type == WalletType.eWallet).toList();
           final otherWallets = wallets.where((w) => w.wallet.type == WalletType.other).toList();
+          final authUser = ref.watch(authCurrentUserProvider);
+          final accountHolderName = authUser?.name;
 
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
@@ -774,7 +791,48 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 borderColor: borderColor,
               ),
 
-              const SizedBox(height: 14),
+              // 2. Carousel Kartu Realistis (Persis Gambar 1 — Deck Kartu Horisontal)
+              if (wallets.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'KARTU FISIK & E-WALLET',
+                          style: AppTypography.caption.copyWith(
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                            fontSize: 11,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Geser kartu ➔',
+                        style: AppTypography.caption.copyWith(
+                          color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                WalletCardCarousel(
+                  wallets: wallets,
+                  isBalanceVisible: _isBalanceVisible,
+                  accountHolderName: accountHolderName,
+                  onCardTap: (item) => _showWalletDetailSheet(context, ref, item),
+                ),
+              ],
+
+              const SizedBox(height: 18),
 
               // Quick Actions Bar (Transfer & Tambah Dompet)
               Row(
@@ -827,7 +885,7 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
 
               const SizedBox(height: 28),
 
-              // 2. Rekening Bank Group
+              // 3. Rekening Bank Group (Gambar 2 — Desain Fisik Paspor BCA dll)
               if (bankWallets.isNotEmpty) ...[
                 MinimalSectionHeader(
                   title: 'Rekening Bank',
@@ -835,11 +893,12 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 ),
                 ...bankWallets.map((item) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: WalletCard(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: RealisticCardWidget(
                       wallet: item.wallet,
                       currentBalance: item.currentBalance,
                       isBalanceVisible: _isBalanceVisible,
+                      accountHolderName: accountHolderName,
                       onTap: () => _showWalletDetailSheet(context, ref, item),
                     ),
                   );
@@ -847,7 +906,7 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 const SizedBox(height: 14),
               ],
 
-              // 3. Kas Tunai Group
+              // 4. Kas Tunai Group
               if (cashWallets.isNotEmpty) ...[
                 MinimalSectionHeader(
                   title: 'Kas Tunai',
@@ -855,11 +914,12 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 ),
                 ...cashWallets.map((item) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: WalletCard(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: RealisticCardWidget(
                       wallet: item.wallet,
                       currentBalance: item.currentBalance,
                       isBalanceVisible: _isBalanceVisible,
+                      accountHolderName: accountHolderName,
                       onTap: () => _showWalletDetailSheet(context, ref, item),
                     ),
                   );
@@ -867,7 +927,7 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 const SizedBox(height: 14),
               ],
 
-              // 4. E-Wallet Group
+              // 5. E-Wallet Group (DANA, GoPay, OVO, ShopeePay dll)
               if (eWalletWallets.isNotEmpty) ...[
                 MinimalSectionHeader(
                   title: 'E-Wallet',
@@ -875,11 +935,12 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 ),
                 ...eWalletWallets.map((item) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: WalletCard(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: RealisticCardWidget(
                       wallet: item.wallet,
                       currentBalance: item.currentBalance,
                       isBalanceVisible: _isBalanceVisible,
+                      accountHolderName: accountHolderName,
                       onTap: () => _showWalletDetailSheet(context, ref, item),
                     ),
                   );
@@ -887,7 +948,7 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 const SizedBox(height: 14),
               ],
 
-              // 5. Lainnya Group
+              // 6. Lainnya Group
               if (otherWallets.isNotEmpty) ...[
                 MinimalSectionHeader(
                   title: 'Lainnya / Investasi',
@@ -895,11 +956,12 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 ),
                 ...otherWallets.map((item) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: WalletCard(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: RealisticCardWidget(
                       wallet: item.wallet,
                       currentBalance: item.currentBalance,
                       isBalanceVisible: _isBalanceVisible,
+                      accountHolderName: accountHolderName,
                       onTap: () => _showWalletDetailSheet(context, ref, item),
                     ),
                   );
@@ -949,11 +1011,12 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                 ),
                 ...archivedWallets.map((item) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: WalletCard(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: RealisticCardWidget(
                       wallet: item.wallet,
                       currentBalance: item.currentBalance,
                       isBalanceVisible: _isBalanceVisible,
+                      accountHolderName: accountHolderName,
                       onTap: () => _showWalletDetailSheet(context, ref, item),
                     ),
                   );
@@ -1178,6 +1241,100 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                 shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 children: [
+                  // 1. Live Realistic Card Preview (Persis Desain Gambar 1 & 2)
+                  Center(
+                    child: RealisticCardWidget(
+                      wallet: Wallet(
+                        id: 'preview',
+                        name: _nameController.text.trim().isNotEmpty
+                            ? _nameController.text.trim()
+                            : 'BCA Paspor Blue',
+                        type: _selectedType,
+                        openingBalance: _openingBalance,
+                        openingDate: DateTime.now().toIso8601String(),
+                        createdAt: DateTime.now().toIso8601String(),
+                        updatedAt: DateTime.now().toIso8601String(),
+                        iconKey: _selectedIconKey,
+                        colorHex: _selectedColorHex,
+                      ),
+                      currentBalance: _openingBalance,
+                      isBalanceVisible: true,
+                      height: 165,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 2. Preset Pilihan Bank & E-Wallet Cepat
+                  Text(
+                    'PILIH TEMPLAT / PENERBIT KARTU',
+                    style: AppTypography.caption1.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: CardThemeHelper.allPresets.map((preset) {
+                        final isSelected = _nameController.text.trim().toLowerCase() == preset.displayName.toLowerCase();
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: InkWell(
+                            onTap: () {
+                              unawaited(AppHaptics.selection());
+                              setState(() {
+                                _nameController.text = preset.displayName;
+                                if (_nameError != null) _nameError = null;
+
+                                if (preset.brand == RealisticCardBrand.cash) {
+                                  _selectedType = WalletType.cash;
+                                  _selectedIconKey = 'cash';
+                                } else if (preset.brand == RealisticCardBrand.dana ||
+                                    preset.brand == RealisticCardBrand.gopay ||
+                                    preset.brand == RealisticCardBrand.ovo ||
+                                    preset.brand == RealisticCardBrand.shopeepay ||
+                                    preset.brand == RealisticCardBrand.linkaja) {
+                                  _selectedType = WalletType.eWallet;
+                                  _selectedIconKey = 'card';
+                                } else if (preset.brand == RealisticCardBrand.investment) {
+                                  _selectedType = WalletType.other;
+                                  _selectedIconKey = 'wallet';
+                                } else {
+                                  _selectedType = WalletType.bank;
+                                  _selectedIconKey = 'bank';
+                                }
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                              decoration: BoxDecoration(
+                                gradient: preset.gradient,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected ? Colors.white : Colors.white24,
+                                  width: isSelected ? 1.8 : 0.6,
+                                ),
+                              ),
+                              child: Text(
+                                preset.displayName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
                   // Nama Dompet
                   Text(
                     'NAMA DOMPET / REKENING',
@@ -1575,6 +1732,102 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                 shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 children: [
+                  // 1. Live Realistic Card Preview (Persis Desain Gambar 1 & 2)
+                  Center(
+                    child: RealisticCardWidget(
+                      wallet: Wallet(
+                        id: widget.wallet.id,
+                        name: _nameController.text.trim().isNotEmpty
+                            ? _nameController.text.trim()
+                            : widget.wallet.name,
+                        type: _selectedType,
+                        openingBalance: widget.wallet.openingBalance,
+                        openingDate: widget.wallet.openingDate,
+                        createdAt: widget.wallet.createdAt,
+                        updatedAt: DateTime.now().toIso8601String(),
+                        iconKey: _selectedIconKey,
+                        colorHex: _selectedColorHex,
+                        currencyCode: widget.wallet.currencyCode,
+                        isArchived: widget.wallet.isArchived,
+                      ),
+                      currentBalance: ref.watch(walletsWithBalanceStreamProvider).value?.where((w) => w.wallet.id == widget.wallet.id).firstOrNull?.currentBalance ?? widget.wallet.openingBalance,
+                      isBalanceVisible: true,
+                      height: 165,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 2. Preset Pilihan Bank & E-Wallet Cepat
+                  Text(
+                    'PILIH TEMPLAT / PENERBIT KARTU',
+                    style: AppTypography.caption1.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: CardThemeHelper.allPresets.map((preset) {
+                        final isSelected = _nameController.text.trim().toLowerCase() == preset.displayName.toLowerCase();
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: InkWell(
+                            onTap: () {
+                              unawaited(AppHaptics.selection());
+                              setState(() {
+                                _nameController.text = preset.displayName;
+                                if (_nameError != null) _nameError = null;
+
+                                if (preset.brand == RealisticCardBrand.cash) {
+                                  _selectedType = WalletType.cash;
+                                  _selectedIconKey = 'cash';
+                                } else if (preset.brand == RealisticCardBrand.dana ||
+                                    preset.brand == RealisticCardBrand.gopay ||
+                                    preset.brand == RealisticCardBrand.ovo ||
+                                    preset.brand == RealisticCardBrand.shopeepay ||
+                                    preset.brand == RealisticCardBrand.linkaja) {
+                                  _selectedType = WalletType.eWallet;
+                                  _selectedIconKey = 'card';
+                                } else if (preset.brand == RealisticCardBrand.investment) {
+                                  _selectedType = WalletType.other;
+                                  _selectedIconKey = 'wallet';
+                                } else {
+                                  _selectedType = WalletType.bank;
+                                  _selectedIconKey = 'bank';
+                                }
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                              decoration: BoxDecoration(
+                                gradient: preset.gradient,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected ? Colors.white : Colors.white24,
+                                  width: isSelected ? 1.8 : 0.6,
+                                ),
+                              ),
+                              child: Text(
+                                preset.displayName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
                   // Nama Dompet
                   Text(
                     'NAMA DOMPET / REKENING',

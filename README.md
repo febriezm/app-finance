@@ -48,6 +48,23 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
    - **Edit Langsung (In-Place)**: Pembaruan transaksi, transfer saldo, dompet, dan anggaran dilakukan langsung pada baris data yang ada tanpa menghasilkan entri duplikasi atau perubahan ID.
    - **Hapus Permanen Tanpa Coretan**: Menghilangkan seluruh konsep pembatalan semu (*void*) atau teks dicoret (*strikethrough*). Ketika data dihapus, data tersebut dihilangkan secara permanen dari SQLite lokal dan Supabase Cloud, serta saldo buku besar disinkronkan kembali secara otomatis.
 
+10. **Desain Kartu Fisik Realistis & Carousel Dompet (Physical Bank Cards & E-Wallet Themes)**
+    - **Carousel Dek Kartu Horisontal**: Menu Dompet & Rekening menampilkan daftar dompet aktif dalam bentuk carousel kartu horizontal modern dengan efek intip kartu berikutnya (*peek fraction 0.88*), indikator titik dinamis, dan animasi skala interaktif saat digeser.
+    - **Kartu Bank Realistis Sesuai Fisik Asli**:
+      - **Paspor BCA Blue**: Gradien cyan/biru dengan tekstur *pebble/gelembung air*, chip EMV, logo diamond BCA, dan jaringan Mastercard.
+      - **Paspor BCA Gold**: Gradien emas metalik dengan ilustrasi batik burung garuda (*golden bird vector*), chip emas, teks "Paspor gold debit", dan jaringan GPN/Mastercard.
+      - **Paspor BCA Platinum**: Latar hitam karbon matte dengan kaligrafi perak "P", chip silver, teks "Paspor", dan jaringan Mastercard.
+      - **blu by BCA**: Gradien *deep navy* dengan gelombang cyan khas blu by BCA, chip EMV silver, dan jaringan VISA Debit.
+      - **Bank Lainnya**: Bank Mandiri (swoosh emas Livin), BNI (gelombang toska), BRI (geometris biru), BSI (ornamen arabesque zamrud), Bank Jago (slash oranye/kuning), Jenius BTPN (oranye m-Card), dan SeaBank.
+    - **E-Wallet & Kas Tunai Tematik**:
+      - **DANA**: Biru langit cerah dengan kurva gelombang dinamis DANA dan lencana QRIS.
+      - **GoPay**: Biru toska segar (*mint*) dengan cincin konsentris logo GoPay.
+      - **OVO**: Ungu royal dengan aksen cahaya magenta.
+      - **ShopeePay**: Oranye cerah khas Shopee dengan aksen tas belanja.
+      - **LinkAja**: Merah kobalt khas LinkAja.
+      - **Kas Tunai**: Pola *guilloche geometric* hijau zamrud menyerupai tekstur uang kertas Rupiah fisik.
+    - **Detail Fisik Autentik & Pratinjau Langsung**: Dilengkapi chip pintar logam EMV (jalur sirkuit mikro vektor), gelombang nirkabel *contactless payment*, 4 digit kartu unik deterministik (`•••• 8398`), masa berlaku (*VALID THRU*), nama pemegang kartu, dan selector templat kartu instan di modal Tambah/Edit Dompet.
+
 ---
 
 ## 📱 Navigasi & Tampilan Antarmuka (Apple HIG)
