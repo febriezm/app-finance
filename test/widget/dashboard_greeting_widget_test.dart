@@ -6,6 +6,7 @@ import 'package:drift/native.dart';
 import 'package:myfinance/app/app_providers.dart';
 import 'package:myfinance/core/database/app_database.dart';
 import 'package:myfinance/core/utils/greeting_helper.dart';
+import 'package:myfinance/features/auth/domain/entities/auth_user.dart';
 import 'package:myfinance/features/dashboard/presentation/screens/dashboard_screen.dart';
 
 void main() {
@@ -44,6 +45,40 @@ void main() {
     expect(find.text('Ringkasan Finansial'), findsOneWidget);
 
     // Unmount and pump out any closing stream timers
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('DashboardScreen displays greeting with account name when user is logged in', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    const testUser = AuthUser(
+      id: 'test-user-bree',
+      email: 'bree@myfinance.id',
+      name: 'bree',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(inMemoryDb),
+          authCurrentUserProvider.overrideWithValue(testUser),
+        ],
+        child: const MaterialApp(
+          home: DashboardScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final expectedGreeting = GreetingHelper.getGreeting();
+    expect(find.text('$expectedGreeting, bree'), findsOneWidget);
+    expect(find.text('Ringkasan Finansial'), findsOneWidget);
+
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });

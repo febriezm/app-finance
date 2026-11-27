@@ -15,13 +15,13 @@ class GreetingHelper {
     final hour = localTime.hour;
 
     if (hour >= 4 && hour < 11) {
-      return 'Selamat pagi';
+      return 'Selamat Pagi';
     } else if (hour >= 11 && hour < 15) {
-      return 'Selamat siang';
+      return 'Selamat Siang';
     } else if (hour >= 15 && hour < 19) {
-      return 'Selamat sore';
+      return 'Selamat Sore';
     } else {
-      return 'Selamat malam';
+      return 'Selamat Malam';
     }
   }
 

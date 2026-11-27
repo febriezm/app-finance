@@ -78,6 +78,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
     final totalBalance = ref.watch(netOperationalBalanceProvider);
     final walletsAsync = ref.watch(walletsWithBalanceStreamProvider);
     final recentTransactionsAsync = ref.watch(recentTransactionsStreamProvider);
+    final authUser = ref.watch(authCurrentUserProvider);
+
+    final rawName = authUser?.name?.trim();
+    final userName = (rawName != null && rawName.isNotEmpty)
+        ? rawName
+        : (authUser?.email != null && authUser!.email.contains('@')
+            ? authUser.email.split('@').first
+            : '');
+    final greetingText = userName.isNotEmpty
+        ? '${GreetingHelper.getGreeting()}, $userName'
+        : '${GreetingHelper.getGreeting()},';
 
     // Current month key & streams
     final currentMonthKey = AppDateFormatter.toMonthKey(DateTime.now());
@@ -152,7 +163,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with WidgetsB
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${GreetingHelper.getGreeting()},',
+                          greetingText,
                           style: AppTypography.caption.copyWith(
                             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                             letterSpacing: 0.1,

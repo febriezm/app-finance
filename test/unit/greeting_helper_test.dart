@@ -4,69 +4,69 @@ import 'package:myfinance/core/utils/greeting_helper.dart';
 
 void main() {
   group('GreetingHelper & Dynamic Greeting Unit Tests', () {
-    test('Pukul 06:00 menghasilkan Selamat pagi', () {
+    test('Pukul 06:00 menghasilkan Selamat Pagi', () {
       final time = DateTime(2026, 11, 22, 6, 0);
-      expect(GreetingHelper.getGreeting(time), equals('Selamat pagi'));
-      expect(AppDateFormatter.getGreeting(time), equals('Selamat pagi'));
+      expect(GreetingHelper.getGreeting(time), equals('Selamat Pagi'));
+      expect(AppDateFormatter.getGreeting(time), equals('Selamat Pagi'));
     });
 
-    test('Pukul 12:00 menghasilkan Selamat siang', () {
+    test('Pukul 12:00 menghasilkan Selamat Siang', () {
       final time = DateTime(2026, 11, 22, 12, 0);
-      expect(GreetingHelper.getGreeting(time), equals('Selamat siang'));
-      expect(AppDateFormatter.getGreeting(time), equals('Selamat siang'));
+      expect(GreetingHelper.getGreeting(time), equals('Selamat Siang'));
+      expect(AppDateFormatter.getGreeting(time), equals('Selamat Siang'));
     });
 
-    test('Pukul 16:00 menghasilkan Selamat sore', () {
+    test('Pukul 16:00 menghasilkan Selamat Sore', () {
       final time = DateTime(2026, 11, 22, 16, 0);
-      expect(GreetingHelper.getGreeting(time), equals('Selamat sore'));
-      expect(AppDateFormatter.getGreeting(time), equals('Selamat sore'));
+      expect(GreetingHelper.getGreeting(time), equals('Selamat Sore'));
+      expect(AppDateFormatter.getGreeting(time), equals('Selamat Sore'));
     });
 
-    test('Pukul 21:00 menghasilkan Selamat malam', () {
+    test('Pukul 21:00 menghasilkan Selamat Malam', () {
       final time = DateTime(2026, 11, 22, 21, 0);
-      expect(GreetingHelper.getGreeting(time), equals('Selamat malam'));
-      expect(AppDateFormatter.getGreeting(time), equals('Selamat malam'));
+      expect(GreetingHelper.getGreeting(time), equals('Selamat Malam'));
+      expect(AppDateFormatter.getGreeting(time), equals('Selamat Malam'));
     });
 
-    test('Pukul 00:00 (tengah malam) menghasilkan Selamat malam', () {
+    test('Pukul 00:00 (tengah malam) menghasilkan Selamat Malam', () {
       final time = DateTime(2026, 11, 22, 0, 0);
-      expect(GreetingHelper.getGreeting(time), equals('Selamat malam'));
-      expect(AppDateFormatter.getGreeting(time), equals('Selamat malam'));
+      expect(GreetingHelper.getGreeting(time), equals('Selamat Malam'));
+      expect(AppDateFormatter.getGreeting(time), equals('Selamat Malam'));
     });
 
-    test('Pukul 03:00 (dini hari) menghasilkan Selamat malam', () {
+    test('Pukul 03:00 (dini hari) menghasilkan Selamat Malam', () {
       final time = DateTime(2026, 11, 22, 3, 0);
-      expect(GreetingHelper.getGreeting(time), equals('Selamat malam'));
-      expect(AppDateFormatter.getGreeting(time), equals('Selamat malam'));
+      expect(GreetingHelper.getGreeting(time), equals('Selamat Malam'));
+      expect(AppDateFormatter.getGreeting(time), equals('Selamat Malam'));
     });
 
     test('Uji batas rentang (Boundary conditions)', () {
-      // 03:59:59 -> Selamat malam
-      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 3, 59, 59)), equals('Selamat malam'));
+      // 03:59:59 -> Selamat Malam
+      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 3, 59, 59)), equals('Selamat Malam'));
 
-      // 04:00:00 -> Selamat pagi (tepat batas pagi)
-      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 4, 0, 0)), equals('Selamat pagi'));
+      // 04:00:00 -> Selamat Pagi (tepat batas pagi)
+      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 4, 0, 0)), equals('Selamat Pagi'));
 
-      // 10:59:59 -> Selamat pagi (akhir batas pagi)
-      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 10, 59, 59)), equals('Selamat pagi'));
+      // 10:59:59 -> Selamat Pagi (akhir batas pagi)
+      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 10, 59, 59)), equals('Selamat Pagi'));
 
-      // 11:00:00 -> Selamat siang (tepat batas siang)
-      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 11, 0, 0)), equals('Selamat siang'));
+      // 11:00:00 -> Selamat Siang (tepat batas siang)
+      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 11, 0, 0)), equals('Selamat Siang'));
 
-      // 14:59:59 -> Selamat siang (akhir batas siang)
-      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 14, 59, 59)), equals('Selamat siang'));
+      // 14:59:59 -> Selamat Siang (akhir batas siang)
+      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 14, 59, 59)), equals('Selamat Siang'));
 
-      // 15:00:00 -> Selamat sore (tepat batas sore)
-      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 15, 0, 0)), equals('Selamat sore'));
+      // 15:00:00 -> Selamat Sore (tepat batas sore)
+      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 15, 0, 0)), equals('Selamat Sore'));
 
-      // 18:59:59 -> Selamat sore (akhir batas sore)
-      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 18, 59, 59)), equals('Selamat sore'));
+      // 18:59:59 -> Selamat Sore (akhir batas sore)
+      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 18, 59, 59)), equals('Selamat Sore'));
 
-      // 19:00:00 -> Selamat malam (tepat batas malam)
-      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 19, 0, 0)), equals('Selamat malam'));
+      // 19:00:00 -> Selamat Malam (tepat batas malam)
+      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 19, 0, 0)), equals('Selamat Malam'));
 
-      // 23:59:59 -> Selamat malam (akhir batas malam hari ini)
-      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 23, 59, 59)), equals('Selamat malam'));
+      // 23:59:59 -> Selamat Malam (akhir batas malam hari ini)
+      expect(GreetingHelper.getGreeting(DateTime(2026, 11, 22, 23, 59, 59)), equals('Selamat Malam'));
     });
 
     test('Uji durasi hingga periode berikutnya (durationUntilNextPeriod)', () {

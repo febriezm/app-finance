@@ -60,7 +60,6 @@ class AppLockController extends StateNotifier<AppLockState> {
   final AppLockService _lockService;
   final AppSettingsDao? _appSettingsDao;
   final SettingsRepository? _settingsRepository;
-  DateTime? _pausedAt;
 
   AppLockController({
     required AppLockService lockService,
@@ -304,22 +303,13 @@ class AppLockController extends StateNotifier<AppLockState> {
 
   /// Dipanggil saat aplikasi masuk ke background
   void onAppPaused() {
-    _pausedAt = DateTime.now();
+    // Kunci Aplikasi hanya berlaku saat aplikasi di-refresh atau pertama kali dibuka.
   }
 
   /// Dipanggil saat aplikasi kembali ke foreground
   Future<void> onAppResumed() async {
-    if (!state.isAppLockEnabled) return;
-
-    if (_pausedAt != null) {
-      final elapsed = DateTime.now().difference(_pausedAt!);
-      if (elapsed.inSeconds >= 1) {
-        state = state.copyWith(isUnlocked: false, errorMessage: null);
-        if (state.isBiometricsAvailable && state.isBiometricsEnabled) {
-          await unlockWithBiometrics();
-        }
-      }
-    }
+    // Sesuai aturan: Kunci Aplikasi hanya berlaku saat aplikasi di-refresh atau pertama kali dibuka.
+    // Tidak mengunci saat navigasi internal, Scan Struk OCR, atau membuka kamera/picker.
   }
 
   /// Reset seluruh state kunci saat pengguna keluar (logout) atau berganti akun

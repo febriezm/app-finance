@@ -35,11 +35,16 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
 6. **Keamanan Berlapis (App Lock & Biometrik)**
    - Perlindungan kode sandi PIN 6-digit dan biometrik (*Face ID / Touch ID / WebAuthn*).
    - Status kunci terisolasi pada sesi akun aktif: saat logout atau berganti akun, status kunci akun sebelumnya otomatis di-reset.
+   - Kunci Aplikasi dirancang non-intrusif: hanya meminta verifikasi saat aplikasi dibuka pertama kali atau di-refresh (cold start/reload), tanpa mengganggu alur kerja internal seperti pemindaian kamera (*Scan Struk*) atau perpindahan layar.
 
-7. **Migrasi Data Lokal ke Cloud (Local-to-Cloud Migration)**
+7. **Profil Pengguna & Personalisasi Akun**
+   - Pendaftaran akun baru dan profil mendukung pencatatan nama lengkap (*full_name*) serta nomor telepon (*phone*) dengan konversi otomatis ke format E.164 (`+62...`) yang tersinkronisasi langsung dengan kolom `auth.users.phone` dan tabel profil Supabase.
+   - Dashboard utama menampilkan salam waktu (*Title Case*: 'Selamat Pagi', 'Selamat Siang', 'Selamat Sore', 'Selamat Malam') yang menyapa nama pengguna secara personal.
+
+8. **Migrasi Data Lokal ke Cloud (Local-to-Cloud Migration)**
    - Dilengkapi modul migrasi transaksional otomatis untuk memindahkan data pengguna lokal terdahulu (*SQLite*) ke *Supabase PostgreSQL Cloud* secara terverifikasi.
 
-8. **Operasi CRUD Bersih (Clean In-Place Edit & Permanent Hard Delete)**
+9. **Operasi CRUD Bersih (Clean In-Place Edit & Permanent Hard Delete)**
    - **Edit Langsung (In-Place)**: Pembaruan transaksi, transfer saldo, dompet, dan anggaran dilakukan langsung pada baris data yang ada tanpa menghasilkan entri duplikasi atau perubahan ID.
    - **Hapus Permanen Tanpa Coretan**: Menghilangkan seluruh konsep pembatalan semu (*void*) atau teks dicoret (*strikethrough*). Ketika data dihapus, data tersebut dihilangkan secara permanen dari SQLite lokal dan Supabase Cloud, serta saldo buku besar disinkronkan kembali secara otomatis.
 

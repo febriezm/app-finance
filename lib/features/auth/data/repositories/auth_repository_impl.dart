@@ -66,6 +66,22 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  String? _formatPhoneForSupabase(String? raw) {
+    if (raw == null) return null;
+    final clean = raw.trim().replaceAll(RegExp(r'[\s\-()]'), '');
+    if (clean.isEmpty) return null;
+    if (clean.startsWith('08')) {
+      return '+62${clean.substring(1)}';
+    } else if (clean.startsWith('628')) {
+      return '+$clean';
+    } else if (clean.startsWith('8')) {
+      return '+62$clean';
+    } else if (!clean.startsWith('+')) {
+      return '+$clean';
+    }
+    return clean;
+  }
+
   @override
   Future<AuthUser> updateProfile({
     String? name,
@@ -78,15 +94,37 @@ class AuthRepositoryImpl implements AuthRepository {
         updatedData['name'] = name.trim();
         updatedData['full_name'] = name.trim();
       }
-      if (phone != null) {
-        updatedData['phone'] = phone.trim();
+
+      final formattedPhone = _formatPhoneForSupabase(phone);
+      if (formattedPhone != null) {
+        updatedData['phone'] = formattedPhone;
       }
 
-      final response = await _client.auth.updateUser(
-        sp.UserAttributes(
-          data: updatedData,
-        ),
-      );
+      sp.UserResponse response;
+      try {
+        response = await _client.auth.updateUser(
+          sp.UserAttributes(
+            phone: formattedPhone,
+            data: updatedData,
+          ),
+        );
+      } catch (e) {
+        debugPrint('[AuthRepositoryImpl] Direct phone update via UserAttributes notice: $e');
+        response = await _client.auth.updateUser(
+          sp.UserAttributes(
+            data: updatedData,
+          ),
+        );
+      }
+
+      // Selalu trigger RPC update_user_phone untuk memastikan kolom auth.users.phone terisi
+      if (formattedPhone != null && formattedPhone.isNotEmpty) {
+        try {
+          await _client.rpc('update_user_phone', params: {'p_phone': formattedPhone});
+        } catch (rpcErr) {
+          debugPrint('[AuthRepositoryImpl] RPC update_user_phone: $rpcErr');
+        }
+      }
 
       final user = response.user;
       if (user == null) {

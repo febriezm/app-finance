@@ -3,7 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/app_providers.dart';
 import 'app_lock_screen.dart';
 
-class AppLockListener extends ConsumerStatefulWidget {
+/// Listener Kunci Aplikasi — MyFinance Minimal.
+///
+/// Kebijakan Penguncian:
+/// - Kunci Aplikasi HANYA aktif saat aplikasi pertama kali dibuka atau di-refresh (cold start / reload)
+///   dan pengguna telah terautentikasi (login) serta memiliki proteksi Kunci Aplikasi aktif pada akunnya.
+/// - Setelah berhasil di-unlock, aplikasi TIDAK AKAN mengunci ulang di tengah penggunaan
+///   (misal saat membuka kamera, Scan Struk OCR, atau berpindah menu).
+class AppLockListener extends ConsumerWidget {
   final Widget child;
 
   const AppLockListener({
@@ -12,45 +19,16 @@ class AppLockListener extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<AppLockListener> createState() => _AppLockListenerState();
-}
-
-class _AppLockListenerState extends ConsumerState<AppLockListener> with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    final notifier = ref.read(appLockControllerProvider.notifier);
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.inactive) {
-      notifier.onAppPaused();
-    } else if (state == AppLifecycleState.resumed) {
-      notifier.onAppResumed();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final authUser = ref.watch(authCurrentUserProvider);
     final lockState = ref.watch(appLockControllerProvider);
 
-    // Kunci aplikasi HANYA aktif saat pengguna telah terautentikasi (login).
-    // Jika sesi belum aktif atau telah logout, jangan tampilkan layar kunci agar pengguna dapat login.
+    // Kunci aplikasi HANYA aktif saat pengguna telah terautentikasi (login)
+    // dan belum di-unlock pada sesi aktif ini.
     if (authUser != null && lockState.isAppLockEnabled && !lockState.isUnlocked) {
       return const AppLockScreen();
     }
 
-    return widget.child;
+    return child;
   }
 }
