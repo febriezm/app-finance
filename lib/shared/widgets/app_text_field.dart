@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
@@ -10,6 +11,7 @@ class AppTextField extends StatelessWidget {
   final TextEditingController? controller;
   final String? initialValue;
   final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final bool obscureText;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
@@ -28,6 +30,7 @@ class AppTextField extends StatelessWidget {
     this.controller,
     this.initialValue,
     this.keyboardType = TextInputType.text,
+    this.inputFormatters,
     this.obscureText = false,
     this.prefixIcon,
     this.suffixIcon,
@@ -62,6 +65,7 @@ class AppTextField extends StatelessWidget {
           controller: controller,
           initialValue: initialValue,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           obscureText: obscureText,
           validator: validator,
           onChanged: onChanged,

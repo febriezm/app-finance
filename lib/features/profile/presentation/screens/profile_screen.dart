@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/app_providers.dart';
 import '../../../../app/router.dart';
 import '../../../../core/formatting/date_formatter.dart';
+import '../../../../core/formatting/phone_formatter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -123,8 +124,10 @@ class ProfileScreen extends ConsumerWidget {
   void _showEditProfileModal(BuildContext context, WidgetRef ref, AuthUser? user) {
     unawaited(AppHaptics.selection());
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rawPhone = user?.phone?.trim() ?? '';
+    final initialPhone = rawPhone.startsWith('0') ? '+62${rawPhone.substring(1)}' : rawPhone;
     final nameController = TextEditingController(text: user?.name ?? '');
-    final phoneController = TextEditingController(text: user?.phone ?? '');
+    final phoneController = TextEditingController(text: initialPhone);
 
     showModalBottomSheet<void>(
       context: context,
@@ -180,10 +183,14 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 AppTextField(
                   label: 'Nomor Telepon',
-                  hintText: 'Contoh: +628123456789 atau 08123456789',
+                  hintText: 'Contoh: +628123456789',
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
                   prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                    const IndonesianPhoneInputFormatter(),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 SizedBox(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sp;
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/formatting/phone_formatter.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -66,22 +67,6 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  String? _formatPhoneForSupabase(String? raw) {
-    if (raw == null) return null;
-    final clean = raw.trim().replaceAll(RegExp(r'[\s\-()]'), '');
-    if (clean.isEmpty) return null;
-    if (clean.startsWith('08')) {
-      return '+62${clean.substring(1)}';
-    } else if (clean.startsWith('628')) {
-      return '+$clean';
-    } else if (clean.startsWith('8')) {
-      return '+62$clean';
-    } else if (!clean.startsWith('+')) {
-      return '+$clean';
-    }
-    return clean;
-  }
-
   @override
   Future<AuthUser> updateProfile({
     String? name,
@@ -95,7 +80,7 @@ class AuthRepositoryImpl implements AuthRepository {
         updatedData['full_name'] = name.trim();
       }
 
-      final formattedPhone = _formatPhoneForSupabase(phone);
+      final formattedPhone = PhoneFormatter.format(phone);
       if (formattedPhone != null) {
         updatedData['phone'] = formattedPhone;
       }
