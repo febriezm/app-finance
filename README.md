@@ -64,7 +64,11 @@ Aplikasi ini mengintegrasikan otentikasi awan aman (*Supabase Auth*), penyimpana
       - **LinkAja**: Merah kobalt khas LinkAja.
       - **Kas Tunai**: Pola *guilloche geometric* hijau zamrud menyerupai tekstur uang kertas Rupiah fisik.
     - **Modal Detail Dompet Adaptif & Anti-Terpotong**: Lembar detail dompet (*Wallet Detail Sheet*) dioptimalkan dengan batasan tinggi aman 88% layar dan kontainer gulir mulus (*BouncingScrollPhysics*), memastikan seluruh tombol aksi (*Riwayat Mutasi*, *Transfer*, *Edit*, *Arsipkan*, dan *Hapus*) tampil utuh di semua perangkat termasuk Safari iOS.
-    - **Penyederhanaan Form Tambah/Edit Dompet**: Menghilangkan selektor warna aksen manual yang usang, memfokuskan alur pembuatan dompet pada pemilihan templat penerbit/bank dengan *Live Card Preview* berpresisi tinggi.
+    - **Rasio Kartu Presisi ISO/IEC 7810 ID-1 (1.586)**: Dimensi kartu fisik di seluruh modal (rincian dompet, tambah dompet baru, dan edit dompet) dikunci pada rasio standar baku `1.586` dan batas lebar adaptif (max 420px), mencegah distorsi kartu menjadi lonjong atau gepeng di layar lebar maupun sempit.
+    - **Form Tambah & Edit Dompet Dinamis & Terfilter Sesuai Tipe**:
+      - Urutan form yang ergonomis: *Live Card Preview* -> *Tipe Dompet* -> *Pilih Templat/Penerbit Kartu* -> *Nama Dompet* -> *Saldo Awal*.
+      - Templat kartu difilter otomatis berdasarkan tipe yang dipilih (*Bank* hanya menampilkan bank-bank seperti BCA, Mandiri, BNI, BRI, BSI, CIMB, Jago, Jenius, Seabank; *E-Wallet* menampilkan DANA, GoPay, OVO, ShopeePay, LinkAja; *Kas Tunai* menampilkan Tunai Fisik Rupiah).
+      - Menghilangkan selektor warna aksen manual yang usang untuk menjaga estetika kartu realistis yang konsisten.
 
 ---
 

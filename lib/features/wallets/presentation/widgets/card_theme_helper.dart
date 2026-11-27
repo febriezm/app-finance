@@ -484,6 +484,47 @@ class CardThemeHelper {
     }
   }
 
+  /// Mengambil daftar templat kartu yang sesuai dengan WalletType
+  static List<CardStyleDefinition> getPresetsForType(WalletType type) {
+    switch (type) {
+      case WalletType.bank:
+        return allPresets.where((p) =>
+          p.brand == RealisticCardBrand.bcaBlue ||
+          p.brand == RealisticCardBrand.bcaGold ||
+          p.brand == RealisticCardBrand.bcaPlatinum ||
+          p.brand == RealisticCardBrand.bcaBlu ||
+          p.brand == RealisticCardBrand.mandiri ||
+          p.brand == RealisticCardBrand.bni ||
+          p.brand == RealisticCardBrand.bri ||
+          p.brand == RealisticCardBrand.bsi ||
+          p.brand == RealisticCardBrand.cimb ||
+          p.brand == RealisticCardBrand.jago ||
+          p.brand == RealisticCardBrand.jenius ||
+          p.brand == RealisticCardBrand.seabank
+        ).toList();
+
+      case WalletType.eWallet:
+        return allPresets.where((p) =>
+          p.brand == RealisticCardBrand.dana ||
+          p.brand == RealisticCardBrand.gopay ||
+          p.brand == RealisticCardBrand.ovo ||
+          p.brand == RealisticCardBrand.shopeepay ||
+          p.brand == RealisticCardBrand.linkaja
+        ).toList();
+
+      case WalletType.cash:
+        return allPresets.where((p) =>
+          p.brand == RealisticCardBrand.cash
+        ).toList();
+
+      case WalletType.other:
+        return allPresets.where((p) =>
+          p.brand == RealisticCardBrand.investment ||
+          p.brand == RealisticCardBrand.generic
+        ).toList();
+    }
+  }
+
   /// Menghasilkan 4 digit nomor kartu deterministik dari ID dompet
   static String getCardNumberSuffix(String walletId) {
     int sum = 0;

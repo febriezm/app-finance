@@ -48,9 +48,29 @@ class RealisticCardWidget extends StatelessWidget {
         ? rawHolder
         : wallet.name;
 
+    const double cardRatio = 1.586; // Rasio kartu ID-1 standar ISO 7810
+
+    // Hitung dimensi presisi agar kartu selalu proporsional dan tidak pernah lonjong/gepeng
+    final double? effectiveWidth;
+    final double? effectiveHeight;
+
+    if (width != null && height != null) {
+      effectiveWidth = width;
+      effectiveHeight = height;
+    } else if (height != null) {
+      effectiveHeight = height;
+      effectiveWidth = height! * cardRatio;
+    } else if (width != null) {
+      effectiveWidth = width;
+      effectiveHeight = width! / cardRatio;
+    } else {
+      effectiveWidth = null;
+      effectiveHeight = null;
+    }
+
     Widget cardBody = Container(
-      width: width,
-      height: height,
+      width: effectiveWidth,
+      height: effectiveHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -319,7 +339,7 @@ class RealisticCardWidget extends StatelessWidget {
       ),
     );
 
-    if (width == null && height == null) {
+    if (effectiveWidth == null && effectiveHeight == null) {
       cardBody = Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
@@ -328,6 +348,10 @@ class RealisticCardWidget extends StatelessWidget {
             child: cardBody,
           ),
         ),
+      );
+    } else {
+      cardBody = Center(
+        child: cardBody,
       );
     }
 

@@ -107,7 +107,6 @@ class _WalletsScreenState extends ConsumerState<WalletsScreen> {
                           currentBalance: item.currentBalance,
                           isBalanceVisible: _isBalanceVisible,
                           accountHolderName: ref.read(authCurrentUserProvider)?.name,
-                          height: 175,
                         ),
                       ),
                       const SizedBox(height: 18),
@@ -1095,6 +1094,14 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
           _selectedIconKey = 'wallet';
           break;
       }
+
+      // Auto-set nama dompet sesuai template pertama dari tipe yang baru dipilih
+      final availablePresets = CardThemeHelper.getPresetsForType(type);
+      final currentMatches = availablePresets.any((p) => p.displayName.toLowerCase() == _nameController.text.trim().toLowerCase());
+      if (!currentMatches && availablePresets.isNotEmpty) {
+        _nameController.text = availablePresets.first.displayName;
+      }
+      if (_nameError != null) _nameError = null;
     });
   }
 
@@ -1245,125 +1252,11 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                       ),
                       currentBalance: _openingBalance,
                       isBalanceVisible: true,
-                      height: 165,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 2. Preset Pilihan Bank & E-Wallet Cepat
-                  Text(
-                    'PILIH TEMPLAT / PENERBIT KARTU',
-                    style: AppTypography.caption1.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      children: CardThemeHelper.allPresets.map((preset) {
-                        final isSelected = _nameController.text.trim().toLowerCase() == preset.displayName.toLowerCase();
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: InkWell(
-                            onTap: () {
-                              unawaited(AppHaptics.selection());
-                              setState(() {
-                                _nameController.text = preset.displayName;
-                                if (_nameError != null) _nameError = null;
-
-                                if (preset.brand == RealisticCardBrand.cash) {
-                                  _selectedType = WalletType.cash;
-                                  _selectedIconKey = 'cash';
-                                } else if (preset.brand == RealisticCardBrand.dana ||
-                                    preset.brand == RealisticCardBrand.gopay ||
-                                    preset.brand == RealisticCardBrand.ovo ||
-                                    preset.brand == RealisticCardBrand.shopeepay ||
-                                    preset.brand == RealisticCardBrand.linkaja) {
-                                  _selectedType = WalletType.eWallet;
-                                  _selectedIconKey = 'card';
-                                } else if (preset.brand == RealisticCardBrand.investment) {
-                                  _selectedType = WalletType.other;
-                                  _selectedIconKey = 'wallet';
-                                } else {
-                                  _selectedType = WalletType.bank;
-                                  _selectedIconKey = 'bank';
-                                }
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                              decoration: BoxDecoration(
-                                gradient: preset.gradient,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected ? Colors.white : Colors.white24,
-                                  width: isSelected ? 1.8 : 0.6,
-                                ),
-                              ),
-                              child: Text(
-                                preset.displayName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
                     ),
                   ),
                   const SizedBox(height: 18),
 
-                  // Nama Dompet
-                  Text(
-                    'NAMA DOMPET / REKENING',
-                    style: AppTypography.caption1.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _nameController,
-                    style: AppTypography.body,
-                    decoration: InputDecoration(
-                      hintText: 'Contoh: BCA Utama, GoPay, Dompet Tunai',
-                      filled: true,
-                      fillColor: surfaceElevated,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: borderColor, width: 0.8),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: borderColor, width: 0.8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                          width: 1.2,
-                        ),
-                      ),
-                      errorText: _nameError,
-                    ),
-                    onChanged: (_) {
-                      if (_nameError != null) setState(() => _nameError = null);
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Tipe Dompet
+                  // 2. Tipe Dompet
                   Text(
                     'TIPE DOMPET',
                     style: AppTypography.caption1.copyWith(
@@ -1409,6 +1302,102 @@ class _AddWalletModalState extends ConsumerState<_AddWalletModal> {
                         ),
                       );
                     }).toList(),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // 3. Preset Pilihan Sesuai Tipe Dompet
+                  Text(
+                    'PILIH TEMPLAT / PENERBIT KARTU',
+                    style: AppTypography.caption1.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: CardThemeHelper.getPresetsForType(_selectedType).map((preset) {
+                        final isSelected = _nameController.text.trim().toLowerCase() == preset.displayName.toLowerCase();
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: InkWell(
+                            onTap: () {
+                              unawaited(AppHaptics.selection());
+                              setState(() {
+                                _nameController.text = preset.displayName;
+                                if (_nameError != null) _nameError = null;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                              decoration: BoxDecoration(
+                                gradient: preset.gradient,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected ? Colors.white : Colors.white24,
+                                  width: isSelected ? 1.8 : 0.6,
+                                ),
+                              ),
+                              child: Text(
+                                preset.displayName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // 4. Nama Dompet
+                  Text(
+                    'NAMA DOMPET / REKENING',
+                    style: AppTypography.caption1.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nameController,
+                    style: AppTypography.body,
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: BCA Utama, GoPay, Dompet Tunai',
+                      filled: true,
+                      fillColor: surfaceElevated,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor, width: 0.8),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor, width: 0.8),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          width: 1.2,
+                        ),
+                      ),
+                      errorText: _nameError,
+                    ),
+                    onChanged: (_) {
+                      if (_nameError != null) setState(() => _nameError = null);
+                    },
                   ),
 
                   const SizedBox(height: 20),
@@ -1516,6 +1505,14 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
           _selectedIconKey = 'wallet';
           break;
       }
+
+      // Auto-set nama dompet sesuai template pertama dari tipe yang baru dipilih
+      final availablePresets = CardThemeHelper.getPresetsForType(type);
+      final currentMatches = availablePresets.any((p) => p.displayName.toLowerCase() == _nameController.text.trim().toLowerCase());
+      if (!currentMatches && availablePresets.isNotEmpty) {
+        _nameController.text = availablePresets.first.displayName;
+      }
+      if (_nameError != null) _nameError = null;
     });
   }
 
@@ -1673,124 +1670,11 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                       ),
                       currentBalance: ref.watch(walletsWithBalanceStreamProvider).value?.where((w) => w.wallet.id == widget.wallet.id).firstOrNull?.currentBalance ?? widget.wallet.openingBalance,
                       isBalanceVisible: true,
-                      height: 165,
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // 2. Preset Pilihan Bank & E-Wallet Cepat
-                  Text(
-                    'PILIH TEMPLAT / PENERBIT KARTU',
-                    style: AppTypography.caption1.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      children: CardThemeHelper.allPresets.map((preset) {
-                        final isSelected = _nameController.text.trim().toLowerCase() == preset.displayName.toLowerCase();
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: InkWell(
-                            onTap: () {
-                              unawaited(AppHaptics.selection());
-                              setState(() {
-                                _nameController.text = preset.displayName;
-                                if (_nameError != null) _nameError = null;
-
-                                if (preset.brand == RealisticCardBrand.cash) {
-                                  _selectedType = WalletType.cash;
-                                  _selectedIconKey = 'cash';
-                                } else if (preset.brand == RealisticCardBrand.dana ||
-                                    preset.brand == RealisticCardBrand.gopay ||
-                                    preset.brand == RealisticCardBrand.ovo ||
-                                    preset.brand == RealisticCardBrand.shopeepay ||
-                                    preset.brand == RealisticCardBrand.linkaja) {
-                                  _selectedType = WalletType.eWallet;
-                                  _selectedIconKey = 'card';
-                                } else if (preset.brand == RealisticCardBrand.investment) {
-                                  _selectedType = WalletType.other;
-                                  _selectedIconKey = 'wallet';
-                                } else {
-                                  _selectedType = WalletType.bank;
-                                  _selectedIconKey = 'bank';
-                                }
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                              decoration: BoxDecoration(
-                                gradient: preset.gradient,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected ? Colors.white : Colors.white24,
-                                  width: isSelected ? 1.8 : 0.6,
-                                ),
-                              ),
-                              child: Text(
-                                preset.displayName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Nama Dompet
-                  Text(
-                    'NAMA DOMPET / REKENING',
-                    style: AppTypography.caption1.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _nameController,
-                    style: AppTypography.body,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: surfaceElevated,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: borderColor, width: 0.8),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: borderColor, width: 0.8),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                          width: 1.2,
-                        ),
-                      ),
-                      errorText: _nameError,
-                    ),
-                    onChanged: (_) {
-                      if (_nameError != null) setState(() => _nameError = null);
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Tipe Dompet
+                  // 2. Tipe Dompet
                   Text(
                     'TIPE DOMPET',
                     style: AppTypography.caption1.copyWith(
@@ -1836,6 +1720,100 @@ class _EditWalletModalState extends ConsumerState<_EditWalletModal> {
                         ),
                       );
                     }).toList(),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 3. Preset Pilihan Sesuai Tipe
+                  Text(
+                    'PILIH TEMPLAT / PENERBIT KARTU',
+                    style: AppTypography.caption1.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: CardThemeHelper.getPresetsForType(_selectedType).map((preset) {
+                        final isSelected = _nameController.text.trim().toLowerCase() == preset.displayName.toLowerCase();
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: InkWell(
+                            onTap: () {
+                              unawaited(AppHaptics.selection());
+                              setState(() {
+                                _nameController.text = preset.displayName;
+                                if (_nameError != null) _nameError = null;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                              decoration: BoxDecoration(
+                                gradient: preset.gradient,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected ? Colors.white : Colors.white24,
+                                  width: isSelected ? 1.8 : 0.6,
+                                ),
+                              ),
+                              child: Text(
+                                preset.displayName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 4. Nama Dompet
+                  Text(
+                    'NAMA DOMPET / REKENING',
+                    style: AppTypography.caption1.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nameController,
+                    style: AppTypography.body,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: surfaceElevated,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor, width: 0.8),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor, width: 0.8),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          width: 1.2,
+                        ),
+                      ),
+                      errorText: _nameError,
+                    ),
+                    onChanged: (_) {
+                      if (_nameError != null) setState(() => _nameError = null);
+                    },
                   ),
 
                   const SizedBox(height: 20),

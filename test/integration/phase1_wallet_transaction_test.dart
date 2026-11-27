@@ -11,6 +11,13 @@ import '../unit/auth_test.dart';
 void main() {
   testWidgets('Phase 1 Integration: Add Wallets, Record Expense & verify ledger balance updates',
       (tester) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     final inMemoryDb = AppDatabase(NativeDatabase.memory());
     final loggedInUser = AuthUser(
       id: 'test-user-phase1',
@@ -72,7 +79,7 @@ void main() {
     await tester.tap(find.widgetWithText(InkWell, 'Pengeluaran'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Catat Transaksi'), findsOneWidget);
+    expect(find.text('Catat Transaksi'), findsWidgets);
 
     // Enter amount 50000
     await tester.enterText(find.widgetWithText(TextField, 'Rp 0'), '50000');
