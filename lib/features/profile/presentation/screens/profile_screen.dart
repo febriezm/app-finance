@@ -11,6 +11,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/app_haptics.dart';
 import '../../../../shared/widgets/shared_widgets.dart';
+import '../../../auth/domain/entities/auth_user.dart';
+import '../../../security/presentation/widgets/pin_setup_sheet.dart';
+import '../../../security/presentation/widgets/pin_verify_sheet.dart';
 
 /// Halaman Profil Pengguna — MyFinance Minimal (Quiet, Clean, Premium).
 ///
@@ -18,18 +21,20 @@ import '../../../../shared/widgets/shared_widgets.dart';
 /// - Hero Avatar minimalis dengan inisial nama/email pengguna.
 /// - Status Cloud Active badge dengan indikator hijau hening.
 /// - Daftar terkelompok (Grouped List) berdivider tipis hairline (0.6px).
-/// - Informasi kredensial, sesi Cloud PostgreSQL, dan kuota Supabase Storage.
+/// - Informasi profil (Nama, Email, Nomor Telepon, Member Sejak).
+/// - Modul Keamanan & Kredensial terintegrasi (Kunci PIN/Biometrik, Reset Kata Sandi, Enkripsi Cloud).
 /// - Tombol Keluar (Sign Out) dengan dialog konfirmasi aman.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
-  String _getInitials(String email) {
-    if (email.isEmpty) return 'U';
-    final parts = email.split('@').first.split('.');
-    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
+  String _getInitials(String name, String email) {
+    final source = name.trim().isNotEmpty ? name.trim() : email.trim();
+    if (source.isEmpty) return 'U';
+    final parts = source.split(RegExp(r'[\s.@]+')).where((p) => p.isNotEmpty).toList();
+    if (parts.length >= 2) {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
-    return email.substring(0, email.length >= 2 ? 2 : 1).toUpperCase();
+    return source.substring(0, source.length >= 2 ? 2 : 1).toUpperCase();
   }
 
   String _formatStorageSize(int bytes) {
@@ -102,6 +107,120 @@ class ProfileScreen extends ConsumerWidget {
     }
   }
 
+  void _showSecurityInfoDialog(BuildContext context) {
+    unawaited(AppHaptics.light());
+    MinimalDialog.showInfo(
+      context,
+      title: 'Privasi & Keamanan Cloud',
+      message: 'MyFinance beroperasi dengan arsitektur Full Cloud Supabase PostgreSQL yang mengutamakan keamanan dan privasi data finansial Anda.\n\n'
+          '• Database Cloud Supabase PostgreSQL dengan isolasi Row Level Security (RLS)\n'
+          '• Akses data terisolasi ketat hanya untuk akun terautentikasi (auth.uid())\n'
+          '• Berkas struk tersimpan privat di Supabase Storage (User-Scoped Bucket)\n'
+          '• Seluruh transmisi data dienkripsi dengan standar TLS 1.3.',
+    );
+  }
+
+  void _showEditProfileModal(BuildContext context, WidgetRef ref, AuthUser? user) {
+    unawaited(AppHaptics.selection());
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameController = TextEditingController(text: user?.name ?? '');
+    final phoneController = TextEditingController(text: user?.phone ?? '');
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: isDark ? AppColors.surfaceModalDark : AppColors.surfaceModalLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Kelola Informasi Kontak',
+                  style: AppTypography.title2.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Perbarui nama lengkap dan nomor telepon akun Anda.',
+                  style: AppTypography.caption.copyWith(
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                AppTextField(
+                  label: 'Nama Lengkap',
+                  hintText: 'Nama lengkap Anda',
+                  controller: nameController,
+                  keyboardType: TextInputType.name,
+                  prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                ),
+                const SizedBox(height: 16),
+                AppTextField(
+                  label: 'Nomor Telepon',
+                  hintText: 'Contoh: +628123456789 atau 08123456789',
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () async {
+                      unawaited(AppHaptics.medium());
+                      final success = await ref.read(authControllerProvider.notifier).updateProfile(
+                        name: nameController.text.trim(),
+                        phone: phoneController.text.trim(),
+                      );
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(success ? 'Profil berhasil diperbarui.' : 'Gagal memperbarui profil.'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Simpan Perubahan', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -116,8 +235,9 @@ class ProfileScreen extends ConsumerWidget {
     final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 
     final email = authUser?.email ?? 'Pengguna MyFinance';
-    final userId = authUser?.id ?? '-';
-    final initials = _getInitials(email);
+    final name = authUser?.name;
+    final phone = authUser?.phone;
+    final initials = _getInitials(name ?? '', email);
     final createdAtStr = authUser?.createdAt != null
         ? DateFormatter.formatDate(authUser!.createdAt!)
         : 'Baru saja';
@@ -185,12 +305,26 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Text(
-                    email,
-                    style: AppTypography.title2.copyWith(fontWeight: FontWeight.w700),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 6),
+                  if (name != null && name.trim().isNotEmpty) ...[
+                    Text(
+                      name.trim(),
+                      style: AppTypography.title2.copyWith(fontWeight: FontWeight.w700),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      email,
+                      style: AppTypography.body.copyWith(color: textSecondary),
+                      textAlign: TextAlign.center,
+                    ),
+                  ] else ...[
+                    Text(
+                      email,
+                      style: AppTypography.title2.copyWith(fontWeight: FontWeight.w700),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -232,124 +366,233 @@ class ProfileScreen extends ConsumerWidget {
 
             const SizedBox(height: 28),
 
-            // Group 1: INFORMASI AKUN
+            // Group 1: INFORMASI AKUN (Nama, Email, Nomor Telepon, Member Sejak)
             _buildSectionHeader('INFORMASI AKUN', isDark),
-            Container(
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: borderColor, width: 0.8),
-              ),
-              child: Column(
-                children: [
-                  _buildProfileTile(
-                    icon: Icons.mail_outline_rounded,
-                    title: 'Alamat Email',
-                    value: email,
-                    isDark: isDark,
-                    onTap: () => _copyToClipboard(context, email, 'Email'),
-                    trailing: Icon(Icons.copy_rounded, size: 16, color: textSecondary),
-                  ),
-                  Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
-                  _buildProfileTile(
-                    icon: Icons.fingerprint_rounded,
-                    title: 'ID Pengguna (UID)',
-                    value: userId.length > 18 ? '${userId.substring(0, 18)}...' : userId,
-                    isDark: isDark,
-                    onTap: () => _copyToClipboard(context, userId, 'User ID'),
-                    trailing: Icon(Icons.copy_rounded, size: 16, color: textSecondary),
-                  ),
-                  Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
-                  _buildProfileTile(
-                    icon: Icons.calendar_today_outlined,
-                    title: 'Member Sejak',
-                    value: createdAtStr,
-                    isDark: isDark,
-                  ),
-                  Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
-                  _buildProfileTile(
-                    icon: Icons.cloud_done_outlined,
-                    title: 'Tipe Layanan',
-                    value: 'Full Cloud Supabase',
-                    isDark: isDark,
-                    trailingBadge: 'PostgreSQL',
-                  ),
-                ],
-              ),
+            _buildGroupCard(
+              isDark: isDark,
+              borderColor: borderColor,
+              cardColor: cardColor,
+              children: [
+                // 1. Nama Lengkap
+                _buildProfileTile(
+                  icon: Icons.person_outline_rounded,
+                  title: 'Nama Lengkap',
+                  value: (name != null && name.trim().isNotEmpty) ? name.trim() : 'Belum diisi (Ketuk untuk menambah)',
+                  isDark: isDark,
+                  showChevron: true,
+                  onTap: () => _showEditProfileModal(context, ref, authUser),
+                ),
+                Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
+
+                // 2. Alamat Email
+                _buildProfileTile(
+                  icon: Icons.mail_outline_rounded,
+                  title: 'Alamat Email',
+                  value: email,
+                  isDark: isDark,
+                  onTap: () => _copyToClipboard(context, email, 'Email'),
+                  trailing: Icon(Icons.copy_rounded, size: 16, color: textSecondary),
+                ),
+                Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
+
+                // 3. Nomor Telepon
+                _buildProfileTile(
+                  icon: Icons.phone_outlined,
+                  title: 'Nomor Telepon',
+                  value: (phone != null && phone.trim().isNotEmpty)
+                      ? phone.trim()
+                      : 'Belum diatur (Ketuk untuk menambah)',
+                  isDark: isDark,
+                  trailingBadge: (phone != null && phone.trim().isNotEmpty) ? 'Terdaftar' : null,
+                  showChevron: true,
+                  onTap: () => _showEditProfileModal(context, ref, authUser),
+                ),
+                Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
+
+                // 4. Member Sejak
+                _buildProfileTile(
+                  icon: Icons.calendar_today_outlined,
+                  title: 'Member Sejak',
+                  value: createdAtStr,
+                  isDark: isDark,
+                ),
+              ],
             ),
 
             const SizedBox(height: 24),
 
-            // Group 2: PENYIMPANAN CLOUD
+            // Group 2: PENYIMPANAN CLOUD (Kapasitas Gambar Struk)
             _buildSectionHeader('PENYIMPANAN CLOUD', isDark),
-            Container(
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: borderColor, width: 0.8),
-              ),
-              child: Column(
-                children: [
-                  _buildProfileTile(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'Kapasitas Gambar Struk',
-                    value: storageBytesAsync.when(
-                      data: (bytes) => _formatStorageSize(bytes),
-                      loading: () => 'Memuat...',
-                      error: (_, __) => '-',
-                    ),
-                    isDark: isDark,
-                    trailingBadge: 'Private Bucket',
+            _buildGroupCard(
+              isDark: isDark,
+              borderColor: borderColor,
+              cardColor: cardColor,
+              children: [
+                _buildProfileTile(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'Kapasitas Gambar Struk',
+                  value: storageBytesAsync.when(
+                    data: (bytes) => _formatStorageSize(bytes),
+                    loading: () => 'Memuat...',
+                    error: (_, __) => '-',
                   ),
-                  Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
-                  _buildProfileTile(
-                    icon: Icons.dns_outlined,
-                    title: 'Proteksi Akses Data',
-                    value: 'Row Level Security (RLS)',
-                    isDark: isDark,
-                    trailingBadge: 'Aktif',
-                  ),
-                ],
-              ),
+                  isDark: isDark,
+                  trailingBadge: 'Private Bucket',
+                ),
+              ],
             ),
 
             const SizedBox(height: 24),
 
-            // Group 3: KEAMANAN & KREDENSIAL
+            // Group 3: KEAMANAN & KREDENSIAL (Kunci PIN/Biometrik, Ubah PIN, Reset Kata Sandi, Enkripsi TLS)
             _buildSectionHeader('KEAMANAN & KREDENSIAL', isDark),
-            Container(
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: borderColor, width: 0.8),
-              ),
-              child: Column(
-                children: [
-                  _buildProfileTile(
-                    icon: Icons.lock_reset_rounded,
-                    title: 'Ubah Kata Sandi',
-                    value: 'Kirim tautan reset ke email',
-                    isDark: isDark,
-                    showChevron: true,
-                    onTap: () => _sendPasswordResetEmail(context, ref, email),
+            _buildGroupCard(
+              isDark: isDark,
+              borderColor: borderColor,
+              cardColor: cardColor,
+              children: [
+                // Switch Kunci Aplikasi
+                SwitchListTile.adaptive(
+                  value: lockState.isAppLockEnabled,
+                  activeColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  secondary: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: (isDark ? AppColors.incomeDark : AppColors.incomeLight).withValues(alpha: isDark ? 0.2 : 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+                      size: 17,
+                    ),
                   ),
+                  title: Text(
+                    'Kunci Aplikasi',
+                    style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    lockState.isAppLockEnabled
+                        ? (lockState.isBiometricsAvailable && lockState.isBiometricsEnabled
+                            ? 'Aktif • Dilindungi ${lockState.biometricLabel} & PIN'
+                            : 'Aktif • Dilindungi PIN 6-digit')
+                        : 'Minta PIN atau Biometrik saat membuka aplikasi',
+                    style: AppTypography.caption.copyWith(color: textSecondary),
+                  ),
+                  onChanged: (enabled) async {
+                    unawaited(AppHaptics.light());
+                    if (!context.mounted) return;
+                    if (enabled) {
+                      final result = await PinSetupSheet.show(context);
+                      if (result == true && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Kunci aplikasi berhasil diaktifkan.')),
+                        );
+                      }
+                    } else {
+                      final verified = await PinVerifySheet.show(
+                        context,
+                        title: 'Matikan Kunci Aplikasi',
+                        subtitle: 'Masukkan kode sandi PIN untuk menonaktifkan keamanan',
+                        onPinEntered: (pin) =>
+                            ref.read(appLockControllerProvider.notifier).disableAppLock(pin),
+                      );
+                      if (verified == true && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Kunci aplikasi telah dinonaktifkan.')),
+                        );
+                      }
+                    }
+                  },
+                ),
+
+                if (lockState.isAppLockEnabled) ...[
                   Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
                   _buildProfileTile(
-                    icon: Icons.security_outlined,
-                    title: 'Kunci Aplikasi (PIN/Biometrik)',
-                    value: lockState.isAppLockEnabled
-                        ? (lockState.isBiometricsEnabled ? 'PIN & Biometrik Aktif' : 'PIN 6-Digit Aktif')
-                        : 'Tidak Aktif',
-                    isDark: isDark,
-                    trailingBadge: lockState.isAppLockEnabled ? 'Terproteksi' : 'Off',
-                    onTap: () {
-                      unawaited(AppHaptics.selection());
-                      context.push(AppRouter.settings);
-                    },
+                    icon: Icons.pin_outlined,
+                    title: 'Ubah Kode Sandi PIN',
+                    value: 'Ganti 6-digit PIN kode sandi aplikasi Anda',
                     showChevron: true,
+                    isDark: isDark,
+                    onTap: () async {
+                      unawaited(AppHaptics.light());
+                      if (!context.mounted) return;
+                      final verified = await PinVerifySheet.show(
+                        context,
+                        title: 'Verifikasi PIN Saat Ini',
+                        subtitle: 'Masukkan kode sandi lama Anda terlebih dahulu',
+                        onPinEntered: (pin) =>
+                            ref.read(appLockControllerProvider.notifier).unlockWithPin(pin),
+                      );
+
+                      if (verified == true && context.mounted) {
+                        final changed = await PinSetupSheet.show(context, isChangingPin: true);
+                        if (changed == true && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Kode sandi PIN berhasil diubah.')),
+                          );
+                        }
+                      }
+                    },
                   ),
+
+                  if (lockState.isBiometricsAvailable) ...[
+                    Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
+                    SwitchListTile.adaptive(
+                      value: lockState.isBiometricsEnabled,
+                      activeColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      secondary: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: (isDark ? AppColors.incomeDark : AppColors.incomeLight).withValues(alpha: isDark ? 0.2 : 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.fingerprint_rounded, color: isDark ? AppColors.incomeDark : AppColors.incomeLight, size: 17),
+                      ),
+                      title: Text(
+                        'Buka dengan ${lockState.biometricLabel}',
+                        style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        'Buka kunci cepat menggunakan biometrik tanpa mengetik PIN',
+                        style: AppTypography.caption.copyWith(color: textSecondary),
+                      ),
+                      onChanged: (val) {
+                        unawaited(AppHaptics.light());
+                        ref.read(appLockControllerProvider.notifier).setBiometricsEnabled(val);
+                      },
+                    ),
+                  ],
                 ],
-              ),
+
+                Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
+
+                // Ubah Kata Sandi Akun
+                _buildProfileTile(
+                  icon: Icons.lock_reset_rounded,
+                  title: 'Ubah Kata Sandi',
+                  value: 'Kirim tautan reset kata sandi ke email Anda',
+                  isDark: isDark,
+                  showChevron: true,
+                  onTap: () => _sendPasswordResetEmail(context, ref, email),
+                ),
+
+                Divider(height: 1, thickness: 0.6, indent: 52, color: dividerColor),
+
+                // Jaminan Privasi & Enkripsi Cloud
+                _buildProfileTile(
+                  icon: Icons.shield_outlined,
+                  title: 'Jaminan Privasi & Enkripsi Cloud',
+                  value: 'PostgreSQL RLS terisolasi & TLS 1.3',
+                  isDark: isDark,
+                  showChevron: true,
+                  onTap: () => _showSecurityInfoDialog(context),
+                ),
+              ],
             ),
 
             const SizedBox(height: 32),
@@ -388,6 +631,27 @@ class ProfileScreen extends ConsumerWidget {
 
             const SizedBox(height: 24),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGroupCard({
+    required bool isDark,
+    required Color borderColor,
+    required Color cardColor,
+    required List<Widget> children,
+  }) {
+    return Material(
+      color: cardColor,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor, width: 0.8),
+        ),
+        child: Column(
+          children: children,
         ),
       ),
     );

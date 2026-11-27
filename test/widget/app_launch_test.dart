@@ -158,10 +158,8 @@ void main() {
       expect(find.text('100% Offline • Penyimpanan Lokal Privat'), findsNothing);
       expect(find.text('Jaminan Privasi Offline-First'), findsNothing);
 
-      // 5. Keamanan & Privasi
-      expect(find.text('KEAMANAN & PRIVASI'), findsOneWidget);
-      expect(find.text('Kunci Aplikasi'), findsOneWidget);
-      expect(find.text('Jaminan Privasi Cloud & Enkripsi'), findsOneWidget);
+      // 5. Keamanan & Privasi telah dipindahkan ke menu Profile (KEAMANAN & KREDENSIAL)
+      expect(find.text('KEAMANAN & PRIVASI'), findsNothing);
 
       // 6. Test klik Daftar Kategori -> Sheet terbuka dan memuat kategori secara reaktif
       await tester.tap(find.text('Daftar Kategori'));
@@ -208,8 +206,15 @@ void main() {
       expect(find.text('hallo@cloud.com'), findsWidgets);
       expect(find.text('Sesi Cloud Aktif'), findsOneWidget);
       expect(find.text('INFORMASI AKUN'), findsOneWidget);
+      expect(find.text('Nama Lengkap'), findsOneWidget);
+      expect(find.text('Nomor Telepon'), findsOneWidget);
+      // Memastikan ID Pengguna, Tipe Layanan, dan Proteksi Akses Data dihilangkan
+      expect(find.text('ID Pengguna (UID)'), findsNothing);
+      expect(find.text('Tipe Layanan'), findsNothing);
+      expect(find.text('Proteksi Akses Data'), findsNothing);
       expect(find.text('PENYIMPANAN CLOUD'), findsOneWidget);
       expect(find.text('KEAMANAN & KREDENSIAL'), findsOneWidget);
+      expect(find.text('Kunci Aplikasi'), findsOneWidget);
       expect(find.text('Keluar dari Akun'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());

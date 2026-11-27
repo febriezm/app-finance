@@ -49,18 +49,21 @@ void main() {
 
       // Memastikan elemen utama ter-render
       expect(find.text('Buat Akun Baru'), findsOneWidget);
+      expect(find.text('Nama Lengkap'), findsOneWidget);
       expect(find.text('Email'), findsOneWidget);
       expect(find.text('Kata Sandi'), findsOneWidget);
       expect(find.text('Konfirmasi Kata Sandi'), findsOneWidget);
       expect(find.text('Daftar Akun'), findsOneWidget);
 
-      // Isi email dan kata sandi yang tidak cocok
-      await tester.enterText(find.widgetWithText(TextFormField, '').first, 'test@example.com');
+      // Isi form dengan kata sandi yang tidak cocok
+      await tester.enterText(find.byType(TextFormField).at(0), 'Budi Investor');
+      await tester.enterText(find.byType(TextFormField).at(1), 'test@example.com');
       // Password field
-      await tester.enterText(find.byType(TextFormField).at(1), 'password123');
+      await tester.enterText(find.byType(TextFormField).at(2), 'password123');
       // Confirm password field
-      await tester.enterText(find.byType(TextFormField).at(2), 'mismatch456');
+      await tester.enterText(find.byType(TextFormField).at(3), 'mismatch456');
 
+      await tester.ensureVisible(find.text('Daftar Akun'));
       await tester.tap(find.text('Daftar Akun'));
       await tester.pumpAndSettle();
 

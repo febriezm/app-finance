@@ -37,12 +37,19 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<AuthUser> signUp({
     required String email,
     required String password,
+    String? name,
   }) async {
     try {
       final trimmedEmail = email.trim();
       final response = await _client.auth.signUp(
         email: trimmedEmail,
         password: password,
+        data: name != null && name.trim().isNotEmpty
+            ? {
+                'name': name.trim(),
+                'full_name': name.trim(),
+              }
+            : null,
       );
 
       final user = response.user;
@@ -56,6 +63,42 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (e) {
       if (e is SupabaseAuthException) rethrow;
       throw SupabaseAuthException('Terjadi kendala saat mendaftar: $e');
+    }
+  }
+
+  @override
+  Future<AuthUser> updateProfile({
+    String? name,
+    String? phone,
+  }) async {
+    try {
+      final currentMeta = _client.auth.currentUser?.userMetadata ?? {};
+      final updatedData = Map<String, dynamic>.from(currentMeta);
+      if (name != null) {
+        updatedData['name'] = name.trim();
+        updatedData['full_name'] = name.trim();
+      }
+      if (phone != null) {
+        updatedData['phone'] = phone.trim();
+      }
+
+      final response = await _client.auth.updateUser(
+        sp.UserAttributes(
+          data: updatedData,
+        ),
+      );
+
+      final user = response.user;
+      if (user == null) {
+        throw const SupabaseAuthException('Gagal memperbarui profil pengguna.');
+      }
+
+      return _mapSupabaseUserToAuthUser(user);
+    } on sp.AuthException catch (e) {
+      throw SupabaseAuthException(_mapAuthErrorMessage(e), e.statusCode);
+    } catch (e) {
+      if (e is SupabaseAuthException) rethrow;
+      throw SupabaseAuthException('Terjadi kendala saat memperbarui profil: $e');
     }
   }
 
@@ -133,14 +176,19 @@ class AuthRepositoryImpl implements AuthRepository {
 
   /// Memetakan Supabase User model ke domain AuthUser entity
   AuthUser _mapSupabaseUserToAuthUser(sp.User user) {
+    final meta = user.userMetadata;
+    final name = (meta?['name'] as String?) ?? (meta?['full_name'] as String?);
+    final phone = (meta?['phone'] as String?) ?? (user.phone != null && user.phone!.isNotEmpty ? user.phone : null);
     return AuthUser(
       id: user.id,
       email: user.email ?? '',
+      name: name,
+      phone: phone,
       createdAt: DateTime.tryParse(user.createdAt),
       emailConfirmedAt: user.emailConfirmedAt != null
           ? DateTime.tryParse(user.emailConfirmedAt!)
           : null,
-      userMetadata: user.userMetadata,
+      userMetadata: meta,
     );
   }
 

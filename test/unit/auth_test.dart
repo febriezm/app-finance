@@ -64,6 +64,7 @@ class FakeAuthRepository implements AuthRepository {
   Future<AuthUser> signUp({
     required String email,
     required String password,
+    String? name,
   }) async {
     if (shouldThrowUserExists) {
       throw const SupabaseAuthException(
@@ -75,12 +76,30 @@ class FakeAuthRepository implements AuthRepository {
     final user = AuthUser(
       id: 'test-new-user-id',
       email: email,
+      name: name,
       createdAt: DateTime.now(),
       emailConfirmedAt: shouldRequireEmailConfirmation ? null : DateTime.now(),
     );
     _user = user;
     _authStreamController.add(user);
     return user;
+  }
+
+  @override
+  Future<AuthUser> updateProfile({
+    String? name,
+    String? phone,
+  }) async {
+    if (_user == null) {
+      throw const SupabaseAuthException('Tidak ada pengguna yang masuk.');
+    }
+    final updated = _user!.copyWith(
+      name: name ?? _user!.name,
+      phone: phone ?? _user!.phone,
+    );
+    _user = updated;
+    _authStreamController.add(updated);
+    return updated;
   }
 
   @override

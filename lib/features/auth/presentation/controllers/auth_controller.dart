@@ -198,10 +198,11 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  /// Mendaftarkan pengguna baru dengan email dan password
+  /// Mendaftarkan pengguna baru dengan email, password, dan nama
   Future<bool> signUp({
     required String email,
     required String password,
+    String? name,
   }) async {
     state = state.copyWith(
       isLoading: true,
@@ -214,6 +215,7 @@ class AuthController extends StateNotifier<AuthState> {
       final user = await _authRepository.signUp(
         email: email,
         password: password,
+        name: name,
       );
 
       final needsConfirm = !user.isEmailConfirmed;
@@ -236,6 +238,44 @@ class AuthController extends StateNotifier<AuthState> {
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Terjadi kesalahan saat mendaftar: $e',
+      );
+      return false;
+    }
+  }
+
+  /// Memperbarui informasi profil pengguna (nama, nomor telepon)
+  Future<bool> updateProfile({
+    String? name,
+    String? phone,
+  }) async {
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+
+    try {
+      final updatedUser = await _authRepository.updateProfile(
+        name: name,
+        phone: phone,
+      );
+
+      state = state.copyWith(
+        isLoading: false,
+        user: updatedUser,
+        successMessage: 'Profil berhasil diperbarui.',
+      );
+      return true;
+    } on SupabaseAuthException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.message,
+      );
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Terjadi kesalahan saat memperbarui profil: $e',
       );
       return false;
     }

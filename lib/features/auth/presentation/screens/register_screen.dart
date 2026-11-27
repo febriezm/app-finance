@@ -20,6 +20,7 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -28,6 +29,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -41,6 +43,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final success = await ref.read(authControllerProvider.notifier).signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          name: _nameController.text.trim(),
         );
 
     if (success && mounted) {
@@ -174,6 +177,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             ),
                             const SizedBox(height: AppSpacing.md),
                           ],
+
+                          // Nama Lengkap Field
+                          AppTextField(
+                            label: 'Nama Lengkap',
+                            hintText: 'Nama lengkap Anda',
+                            controller: _nameController,
+                            keyboardType: TextInputType.name,
+                            prefixIcon: Icon(
+                              Icons.person_outline_rounded,
+                              size: 20,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Nama lengkap tidak boleh kosong';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: AppSpacing.md),
 
                           // Email Field
                           AppTextField(

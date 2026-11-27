@@ -9,8 +9,6 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/app_haptics.dart';
 import '../../../../shared/widgets/shared_widgets.dart';
 import '../../../categories/domain/entities/category.dart';
-import '../../../security/presentation/widgets/pin_setup_sheet.dart';
-import '../../../security/presentation/widgets/pin_verify_sheet.dart';
 
 /// Halaman Pengaturan (Settings) — MyFinance Minimal (Quiet, Clean, Premium).
 ///
@@ -40,7 +38,6 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final themeMode = ref.watch(themeModeProvider);
-    final lockState = ref.watch(appLockControllerProvider);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -196,182 +193,6 @@ class SettingsScreen extends ConsumerWidget {
                 showChevron: true,
                 isDark: isDark,
                 onTap: () => _showCategoriesSheet(context),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // 8. Group: Privacy & Security (Privasi & Keamanan)
-          _buildGroupHeader('KEAMANAN & PRIVASI', isDark),
-          _buildGroupCard(
-            isDark: isDark,
-            children: [
-              // Switch Kunci Aplikasi
-              SwitchListTile.adaptive(
-                value: lockState.isAppLockEnabled,
-                activeColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                secondary: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: (isDark ? AppColors.incomeDark : AppColors.incomeLight).withValues(alpha: isDark ? 0.2 : 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: (isDark ? AppColors.incomeDark : AppColors.incomeLight).withValues(alpha: isDark ? 0.4 : 0.25),
-                      width: 0.8,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.lock_outline_rounded,
-                    color: isDark ? AppColors.incomeDark : AppColors.incomeLight,
-                    size: 20,
-                  ),
-                ),
-                title: Text(
-                  'Kunci Aplikasi',
-                  style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  lockState.isAppLockEnabled
-                      ? (lockState.isBiometricsAvailable && lockState.isBiometricsEnabled
-                          ? 'Aktif • Dilindungi ${lockState.biometricLabel} & PIN'
-                          : 'Aktif • Dilindungi PIN 6-digit')
-                      : 'Minta PIN atau Biometrik saat membuka aplikasi',
-                  style: AppTypography.caption.copyWith(
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                  ),
-                ),
-                onChanged: (enabled) async {
-                  unawaited(AppHaptics.light());
-                  if (!context.mounted) return;
-                  if (enabled) {
-                    final result = await PinSetupSheet.show(context);
-                    if (result == true && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Kunci aplikasi berhasil diaktifkan.')),
-                      );
-                    }
-                  } else {
-                    final verified = await PinVerifySheet.show(
-                      context,
-                      title: 'Matikan Kunci Aplikasi',
-                      subtitle: 'Masukkan kode sandi PIN untuk menonaktifkan keamanan',
-                      onPinEntered: (pin) =>
-                          ref.read(appLockControllerProvider.notifier).disableAppLock(pin),
-                    );
-                    if (verified == true && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Kunci aplikasi telah dinonaktifkan.')),
-                      );
-                    }
-                  }
-                },
-              ),
-
-              if (lockState.isAppLockEnabled) ...[
-                _buildDivider(isDark),
-                _buildSettingTile(
-                  icon: Icons.pin_outlined,
-                  iconColor: Colors.blue,
-                  title: 'Ubah Kode Sandi PIN',
-                  subtitle: 'Ganti 6-digit PIN kode sandi aplikasi Anda',
-                  showChevron: true,
-                  isDark: isDark,
-                  onTap: () async {
-                    unawaited(AppHaptics.light());
-                    if (!context.mounted) return;
-                    final verified = await PinVerifySheet.show(
-                      context,
-                      title: 'Verifikasi PIN Saat Ini',
-                      subtitle: 'Masukkan kode sandi lama Anda terlebih dahulu',
-                      onPinEntered: (pin) =>
-                          ref.read(appLockControllerProvider.notifier).unlockWithPin(pin),
-                    );
-
-                    if (verified == true && context.mounted) {
-                      final changed = await PinSetupSheet.show(context, isChangingPin: true);
-                      if (changed == true && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Kode sandi PIN berhasil diubah.')),
-                        );
-                      }
-                    }
-                  },
-                ),
-
-                if (lockState.isBiometricsAvailable) ...[
-                  _buildDivider(isDark),
-                  SwitchListTile.adaptive(
-                    value: lockState.isBiometricsEnabled,
-                    activeColor: isDark ? AppColors.incomeDark : AppColors.incomeLight,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    secondary: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: (isDark ? AppColors.incomeDark : AppColors.incomeLight).withValues(alpha: isDark ? 0.2 : 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: (isDark ? AppColors.incomeDark : AppColors.incomeLight).withValues(alpha: isDark ? 0.4 : 0.25),
-                          width: 0.8,
-                        ),
-                      ),
-                      child: Icon(Icons.fingerprint_rounded, color: isDark ? AppColors.incomeDark : AppColors.incomeLight, size: 20),
-                    ),
-                    title: Text(
-                      'Buka dengan ${lockState.biometricLabel}',
-                      style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      'Gunakan biometrik untuk membuka cepat tanpa mengetik PIN',
-                      style: AppTypography.caption.copyWith(
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                    onChanged: (val) {
-                      unawaited(AppHaptics.light());
-                      ref.read(appLockControllerProvider.notifier).setBiometricsEnabled(val);
-                    },
-                  ),
-                ],
-
-                _buildDivider(isDark),
-                _buildSettingTile(
-                  icon: Icons.screen_lock_portrait_rounded,
-                  iconColor: Colors.orange,
-                  title: 'Kunci Aplikasi Sekarang',
-                  subtitle: 'Uji coba langsung layar kunci tanpa menutup aplikasi',
-                  showChevron: true,
-                  isDark: isDark,
-                  onTap: () {
-                    unawaited(AppHaptics.medium());
-                    ref.read(appLockControllerProvider.notifier).lock();
-                  },
-                ),
-              ],
-
-              _buildDivider(isDark),
-              _buildSettingTile(
-                icon: Icons.shield_outlined,
-                iconColor: Colors.blue,
-                title: 'Jaminan Privasi Cloud & Enkripsi',
-                subtitle: 'PostgreSQL RLS terisolasi & enkripsi transit TLS 1.3',
-                showChevron: true,
-                isDark: isDark,
-                onTap: () {
-                  unawaited(AppHaptics.light());
-                  _showInfoDialog(
-                    context,
-                    title: 'Privasi & Keamanan Cloud',
-                    content: 'MyFinance beroperasi dengan arsitektur Full Cloud Supabase PostgreSQL yang mengutamakan keamanan dan privasi data finansial Anda.\n\n'
-                        '• Database Cloud Supabase PostgreSQL dengan isolasi Row Level Security (RLS)\n'
-                        '• Akses data terisolasi ketat hanya untuk akun terautentikasi (auth.uid())\n'
-                        '• Berkas struk/receipt tersimpan privat di Supabase Storage (User-Scoped Bucket)\n'
-                        '• Seluruh transmisi data dienkripsi dengan standar TLS 1.3.',
-                  );
-                },
               ),
             ],
           ),
